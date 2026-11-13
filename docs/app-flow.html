@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secret Santa Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:wght@400;700;800&display=swap">
+  <style>
+    :root {
+      --pine: #0e2c24;
+      --pine-2: #15402f;
+      --cream: #fdf6ea;
+      --ink: #2b1b15;
+      --muted: #7b665a;
+      --line: #e7d5bd;
+      --berry: #b8322a;
+      --berry-dark: #8f2119;
+      --holly: #2e7d4f;
+      --holly-soft: #dcefe3;
+      --gold: #e9b949;
+      --gold-soft: #fbefd0;
+      --spine: rgba(253, 246, 234, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Nunito', system-ui, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--pine-2), var(--pine) 50%);
+      background-attachment: fixed;
+      line-height: 1.5;
+    }
+
+    main { max-width: 1120px; margin: 0 auto; padding: 40px 16px 80px; }
+
+    header { text-align: center; color: var(--cream); margin-bottom: 36px; }
+
+    h1 {
+      font-family: 'Mountains of Christmas', cursive;
+      font-size: clamp(2.4rem, 7vw, 3.8rem);
+      line-height: 1.05;
+      margin: 0 0 8px;
+      color: var(--gold);
+      text-shadow: 0 3px 0 var(--berry-dark);
+    }
+
+    header p { margin: 0 auto; max-width: 560px; opacity: 0.9; }
+
+    .legend { display: flex; justify-content: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+    .lane-tag {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .lane-tag.organizer { background: var(--gold-soft); color: var(--berry-dark); }
+    .lane-tag.participant { background: var(--holly-soft); color: var(--holly); }
+
+    .lanes-head {
+      display: grid;
+      grid-template-columns: 1fr 64px 1fr;
+      color: var(--cream);
+      font-family: 'Mountains of Christmas', cursive;
+      font-size: 1.7rem;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .flow { list-style: none; margin: 0; padding: 0; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 1fr 64px 1fr;
+      align-items: center;
+    }
+
+    .spine { position: relative; align-self: stretch; display: grid; place-items: center; }
+
+    .spine::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      border-left: 2px dashed var(--spine);
+    }
+
+    .step:first-child .spine::before { top: 50%; }
+    .step:last-child .spine::before { bottom: 50%; }
+
+    .dot {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      border: 3px solid var(--pine);
+    }
+
+    .organizer .dot { background: var(--gold); color: var(--ink); }
+    .participant .dot { background: var(--holly); color: #fff; }
+
+    .card {
+      position: relative;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      background: var(--cream);
+      border-radius: 18px;
+      padding: 16px;
+      margin: 14px 0;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+    }
+
+    .organizer .card { grid-column: 1; grid-row: 1; flex-direction: row-reverse; text-align: right; }
+    .participant .card { grid-column: 3; grid-row: 1; }
+    .spine { grid-column: 2; grid-row: 1; }
+
+    .card::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 22px;
+      border-top: 2px dashed var(--spine);
+    }
+
+    .organizer .card::after { right: -24px; }
+    .participant .card::after { left: -24px; }
+
+    .phone {
+      flex: none;
+      width: 190px;
+      padding: 7px;
+      border-radius: 28px;
+      background: #1b1512;
+      box-shadow: inset 0 0 0 2px #3a2f2a;
+    }
+
+    .phone img { display: block; width: 100%; height: auto; border-radius: 22px; }
+
+    .text h2 {
+      font-family: 'Mountains of Christmas', cursive;
+      font-size: 1.7rem;
+      line-height: 1.1;
+      margin: 6px 0 6px;
+      color: var(--berry-dark);
+    }
+
+    .text p { margin: 0; color: var(--muted); font-size: 0.97rem; }
+
+    .text p + p { margin-top: 8px; }
+
+    .text strong { color: var(--ink); }
+
+    .handoff {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--holly);
+    }
+
+    .organizer .handoff { color: var(--holly); }
+
+    .lane-tag.mobile-only { display: none; }
+
+    @media (min-width: 861px) {
+      .step.organizer + .step.participant,
+      .step.participant + .step.organizer { margin-top: -210px; }
+    }
+
+    @media (max-width: 860px) {
+      .lanes-head { display: none; }
+      .step { grid-template-columns: 48px 1fr; }
+      .spine { grid-column: 1; }
+      .organizer .card, .participant .card { grid-column: 2; flex-direction: column; text-align: left; align-items: stretch; }
+      .organizer .card::after, .participant .card::after { left: -14px; right: auto; width: 12px; }
+      .dot { width: 34px; height: 34px; font-size: 0.9rem; }
+      .phone { width: min(230px, 100%); margin: 0 auto; }
+      .lane-tag.mobile-only { display: inline-block; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>How Secret Santa works</h1>
+      <p>Every screen in order, from setting up the exchange to unwrapping your match. The organizer's steps are on the left, and each participant's steps are on the right.</p>
+      <div class="legend">
+        <span class="lane-tag organizer">Organizer</span>
+        <span class="lane-tag participant">Each participant</span>
+      </div>
+    </header>
+
+    <div class="lanes-head" aria-hidden="true">
+      <span>Organizer</span><span></span><span>Each participant</span>
+    </div>
+
+    <ol class="flow">
+      <li class="step organizer">
+        <div class="spine"><span class="dot">1</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/01-create-details.jpg" alt="Create page with the exchange name, a $40 budget, December 24, and a note" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag organizer mobile-only">Organizer</span>
+            <h2>Set up the exchange</h2>
+            <p>Name it, then add a budget, a date, and a note for everyone if you like. The budget and date show up on every page.</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="step organizer">
+        <div class="spine"><span class="dot">2</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/02-create-people.jpg" alt="Six names added as chips, with Maya and Leo and Priya and Sam paired as couples" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag organizer mobile-only">Organizer</span>
+            <h2>Add people and couples</h2>
+            <p>Type names one at a time or paste a whole list. Pair up partners so they never draw each other.</p>
+            <p>If the couples leave no possible draw, the app says so before you continue.</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="step organizer">
+        <div class="spine"><span class="dot">3</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/03-organizer.jpg" alt="Organizer page with a bookmark reminder, the organizer link, and a Shake the hat button" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag organizer mobile-only">Organizer</span>
+            <h2>Bookmark the organizer page</h2>
+            <p>This private link is your only way back. From here you copy each person's secret link and run the draw.</p>
+            <span class="handoff">Send each person their link →</span>
+          </div>
+        </div>
+      </li>
+
+      <li class="step participant">
+        <div class="spine"><span class="dot">4</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/04-waiting.jpg" alt="Maya's page saying names haven't been drawn yet" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag participant mobile-only">Participant</span>
+            <h2>Open your link</h2>
+            <p>Before the draw, the page says the elves are still busy. The same link works after the draw, so nobody needs a new one.</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="step organizer">
+        <div class="spine"><span class="dot">5</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/05-shake-the-hat.jpg" alt="Shake the hat overlay with a top hat and a name flickering" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag organizer mobile-only">Organizer</span>
+            <h2>Shake the hat</h2>
+            <p>Names flicker past while the draw runs. Nobody draws themselves or their partner, and confetti marks the moment it's done.</p>
+            <span class="handoff">Everyone's gift is now ready →</span>
+          </div>
+        </div>
+      </li>
+
+      <li class="step participant">
+        <div class="spine"><span class="dot">6</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/06-gift.jpg" alt="Maya's page showing a wrapped red gift with a gold bow" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag participant mobile-only">Participant</span>
+            <h2>A gift appears</h2>
+            <p>The same link now shows a wrapped present, with a reminder to check that nobody's peeking.</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="step participant">
+        <div class="spine"><span class="dot">7</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/07-unwrapping.jpg" alt="The gift lid flying off as the box opens" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag participant mobile-only">Participant</span>
+            <h2>Tap to unwrap</h2>
+            <p>The box rumbles, and the lid flies off.</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="step participant">
+        <div class="spine"><span class="dot">8</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/08-reveal.jpg" alt="Confetti and the reveal that Maya is Secret Santa for Priya" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag participant mobile-only">Participant</span>
+            <h2>Meet your match</h2>
+            <p>Confetti and the name of the person you're buying for. Opening the link again shows the match right away.</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="step organizer">
+        <div class="spine"><span class="dot">9</span></div>
+        <div class="card">
+          <div class="phone"><img src="screenshots/09-progress.jpg" alt="Organizer page showing 2 of 6 have unwrapped, with an opened badge per person" loading="lazy"></div>
+          <div class="text">
+            <span class="lane-tag organizer mobile-only">Organizer</span>
+            <h2>Watch the progress</h2>
+            <p>See who has opened their match. The page never shows who drew whom, so the organizer can play too.</p>
+            <p><strong>Need a change?</strong> Reset the draw, edit people or couples, and shake the hat again. Everyone keeps the same link.</p>
+          </div>
+        </div>
+      </li>
+    </ol>
+  </main>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secret Santa</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:wght@400;700;800&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <span class="emoji" aria-hidden="true">🎅</span>
+      <h1>Secret Santa</h1>
+      <p>Add your crew, pair up the couples, and send everyone their own secret link.</p>
+    </header>
+    <div id="editor"></div>
+    <div class="actions">
+      <button id="create" class="btn big">Wrap it up 🎁</button>
+    </div>
+    <section id="recent" class="card" hidden>
+      <h2>Exchanges you're running</h2>
+      <ul class="recent"></ul>
+    </section>
+  </main>
+  <script type="module">
+    import { api, el, letItSnow, recentExchanges, rememberExchange, toast } from '/common.js';
+    import { createEditor } from '/editor.js';
+
+    letItSnow();
+    const editor = createEditor(document.getElementById('editor'));
+
+    const createButton = document.getElementById('create');
+    createButton.addEventListener('click', async () => {
+      createButton.disabled = true;
+      try {
+        const setup = editor.read();
+        const { adminToken } = await api('/api/groups', { method: 'POST', body: setup });
+        rememberExchange(setup.name.trim(), adminToken);
+        location.href = `/admin/${adminToken}`;
+      } catch (error) {
+        toast(error.message, { error: true });
+        createButton.disabled = false;
+      }
+    });
+
+    const recent = recentExchanges();
+    if (recent.length) {
+      const section = document.getElementById('recent');
+      section.querySelector('ul').append(...recent.map(({ name, adminToken }) =>
+        el('li', {}, el('a', { href: `/admin/${adminToken}` }, `🎄 ${name}`)),
+      ));
+      section.hidden = false;
+    }
+  </script>
+</body>
+</html>

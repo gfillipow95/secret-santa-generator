@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Your Secret Santa</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:wght@400;700;800&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main id="app" aria-live="polite"></main>
+  <script type="module">
+    import { api, confetti, el, exchangeFacts, letItSnow, toast } from '/common.js';
+
+    letItSnow();
+    const app = document.getElementById('app');
+    const token = location.pathname.split('/').filter(Boolean).pop();
+
+    async function load() {
+      try {
+        render(await api(`/api/santa/${token}`));
+      } catch (error) {
+        app.replaceChildren(el('section', { class: 'card center' },
+          el('h2', {}, 'Bah, humbug!'),
+          el('p', {}, error.message),
+        ));
+      }
+    }
+
+    function render(view) {
+      document.title = `${view.me.name}'s Secret Santa`;
+      app.replaceChildren(
+        el('header', { class: 'hero' },
+          el('span', { class: 'emoji', 'aria-hidden': 'true' }, '🎅'),
+          el('h1', {}, `Ho ho ho, ${view.me.name}!`),
+          el('p', {}, view.exchange.name),
+          el('div', { class: 'facts' }, exchangeFacts(view.exchange)),
+          view.exchange.note && el('p', { class: 'note' }, view.exchange.note),
+        ),
+        matchCard(view),
+      );
+    }
+
+    function matchCard(view) {
+      if (!view.drawn) {
+        return el('section', { class: 'card center' },
+          el('h2', {}, 'The elves are still busy ⏳'),
+          el('p', {}, "Names haven't been drawn yet. Come back to this same link once your organizer shakes the hat."),
+        );
+      }
+      if (!view.revealed) return giftCard(view);
+      return recipientCard(view.recipient);
+    }
+
+    function giftCard(view) {
+      const gift = el('button', { class: 'gift', 'aria-label': 'Unwrap your match' },
+        el('span', { class: 'gift-box' }),
+        el('span', { class: 'gift-lid' }, el('span', { class: 'gift-bow' })),
+      );
+      const card = el('section', { class: 'card center' },
+        el('h2', {}, 'A gift for you…'),
+        el('p', { class: 'hint' }, "Make sure nobody's peeking over your shoulder!"),
+        el('div', { class: 'gift-stage' }, gift),
+        el('p', { class: 'tap' }, 'Tap the gift to unwrap your match'),
+      );
+
+      gift.addEventListener('click', async () => {
+        gift.disabled = true;
+        gift.classList.add('opening');
+        try {
+          const [updated] = await Promise.all([
+            api(`/api/santa/${token}/reveal`, { method: 'POST' }),
+            new Promise((resolve) => setTimeout(resolve, 1300)),
+          ]);
+          card.replaceWith(recipientCard(updated.recipient));
+          confetti();
+        } catch (error) {
+          gift.disabled = false;
+          gift.classList.remove('opening');
+          toast(error.message, { error: true });
+        }
+      });
+      return card;
+    }
+
+    function recipientCard(recipient) {
+      return el('section', { class: 'card reveal' },
+        el('p', { class: 'label' }, "You're the Secret Santa for"),
+        el('p', { class: 'name' }, recipient.name),
+        el('p', { class: 'hint' }, '🤫 Keep it secret. Keep it safe.'),
+      );
+    }
+
+    load();
+  </script>
+</body>
+</html>

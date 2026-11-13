@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Organize Secret Santa</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎩</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Nunito:wght@400;700;800&display=swap">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main id="app" aria-live="polite"></main>
+  <script type="module">
+    import { api, confetti, copy, el, exchangeFacts, letItSnow, rememberExchange, toast } from '/common.js';
+    import { createEditor } from '/editor.js';
+
+    letItSnow();
+    const app = document.getElementById('app');
+    const token = location.pathname.split('/').filter(Boolean).pop();
+    const santaLink = (person) => `${location.origin}/santa/${person.token}`;
+    let editing = false;
+
+    async function load() {
+      try {
+        const group = await api(`/api/admin/${token}`);
+        rememberExchange(group.name, token);
+        render(group);
+      } catch (error) {
+        app.replaceChildren(el('section', { class: 'card center' },
+          el('h2', {}, 'Bah, humbug!'),
+          el('p', {}, error.message),
+          el('a', { class: 'btn', href: '/' }, 'Start a new exchange'),
+        ));
+      }
+    }
+
+    function render(group) {
+      document.title = `${group.name} · Organizer`;
+      app.replaceChildren(
+        el('header', { class: 'hero' },
+          el('span', { class: 'emoji', 'aria-hidden': 'true' }, '🎩'),
+          el('h1', {}, group.name),
+          el('p', {}, "You're the head elf. Here's your workshop."),
+          el('div', { class: 'facts' }, exchangeFacts(group)),
+          group.note && el('p', { class: 'note' }, group.note),
+        ),
+        bookmarkCard(),
+        drawCard(group),
+        linksCard(group),
+        editCard(group),
+      );
+    }
+
+    function bookmarkCard() {
+      const url = location.href;
+      return el('section', { class: 'card' },
+        el('div', { class: 'banner' },
+          el('span', { class: 'icon', 'aria-hidden': 'true' }, '🔖'),
+          el('p', {}, el('strong', {}, 'Bookmark this page. '), "It's your private organizer link and the only way back here. Don't share it."),
+        ),
+        el('div', { class: 'linkbox' },
+          el('code', {}, url),
+          el('button', { class: 'btn gold small', onclick: () => copy(url, 'Organizer link copied') }, 'Copy'),
+        ),
+      );
+    }
+
+    function drawCard(group) {
+      if (!group.drawn) {
+        return el('section', { class: 'card center' },
+          el('h2', {}, 'Ready to draw?'),
+          el('p', { class: 'hint' }, "Send out the links whenever you like. Once you draw, everyone can unwrap who they're buying for."),
+          el('button', { class: 'btn big', onclick: () => draw(group) }, 'Shake the hat 🎩'),
+        );
+      }
+      const opened = group.participants.filter((p) => p.revealed).length;
+      return el('section', { class: 'card center' },
+        el('h2', {}, 'Names are drawn! 🎉'),
+        el('p', {}, `${opened} of ${group.participants.length} have unwrapped their match.`),
+        el('p', { class: 'hint' }, "The pairings stay secret. This page never shows who has whom, so you can join in too."),
+        el('button', { class: 'btn ghost small', onclick: () => reset() }, 'Reset the draw'),
+      );
+    }
+
+    function linksCard(group) {
+      const allLinks = () => [
+        `🎅 Secret Santa: ${group.name}`,
+        "Open your link to see who you're buying for:",
+        '',
+        ...group.participants.map((p) => `${p.name}: ${santaLink(p)}`),
+      ].join('\n');
+
+      return el('section', { class: 'card' },
+        el('h2', {}, 'Secret links 💌'),
+        el('p', { class: 'hint' }, 'Send each person only their own link. Anyone with a link can see that person’s match.'),
+        el('ul', { class: 'people' }, group.participants.map((person) =>
+          el('li', {},
+            el('span', { class: 'who' }, person.name),
+            group.drawn && el('span', { class: 'badges' },
+              el('span', { class: `badge ${person.revealed ? 'on' : ''}` }, person.revealed ? '🎁 opened' : 'not opened'),
+            ),
+            el('button', { class: 'btn gold small', onclick: () => copy(santaLink(person), `${person.name}'s link copied`) }, 'Copy link'),
+          ),
+        )),
+        group.couples.length > 0 && el('p', { class: 'hint', style: 'margin-top:14px' },
+          `💕 Kept apart: ${group.couples.map(([a, b]) => `${a} & ${b}`).join(', ')}`),
+        el('div', { class: 'actions' },
+          el('button', { class: 'btn ghost small', onclick: () => copy(allLinks(), 'All links copied. Paste them wherever you like!') }, 'Copy all links as a message'),
+        ),
+      );
+    }
+
+    function editCard(group) {
+      if (!editing) {
+        return el('div', { class: 'actions' },
+          el('button', { class: 'btn ghost', onclick: () => { editing = true; render(group); } },
+            group.drawn ? '✏️ Edit details' : '✏️ Edit details, people & couples'),
+        );
+      }
+      const holder = el('div');
+      const editor = createEditor(holder, {
+        exchange: group,
+        participants: group.participants,
+        couples: group.couples,
+        rosterLocked: group.drawn,
+      });
+      const save = async () => {
+        try {
+          const updated = await api(`/api/admin/${token}`, { method: 'PUT', body: editor.read() });
+          editing = false;
+          render(updated);
+          toast('Saved!');
+        } catch (error) {
+          toast(error.message, { error: true });
+        }
+      };
+      return el('div', {},
+        group.drawn && el('div', { class: 'banner' },
+          el('span', { class: 'icon', 'aria-hidden': 'true' }, '🔒'),
+          el('p', {}, 'Names are drawn, so people and couples are locked. Reset the draw to change them. Everyone keeps their link.'),
+        ),
+        holder,
+        el('div', { class: 'actions' },
+          el('button', { class: 'btn ghost', onclick: () => { editing = false; render(group); } }, 'Cancel'),
+          el('button', { class: 'btn', onclick: save }, 'Save changes'),
+        ),
+      );
+    }
+
+    async function draw(group) {
+      const flicker = el('div', { class: 'flicker' });
+      const overlay = el('div', { class: 'overlay', role: 'status' },
+        el('div', {}, el('div', { class: 'hat', 'aria-hidden': 'true' }, '🎩'), flicker, el('p', {}, 'Shaking the hat…')),
+      );
+      document.body.append(overlay);
+      const names = group.participants.map((p) => p.name);
+      const ticker = setInterval(() => { flicker.textContent = names[Math.floor(Math.random() * names.length)]; }, 90);
+      try {
+        const [updated] = await Promise.all([
+          api(`/api/admin/${token}/draw`, { method: 'POST' }),
+          new Promise((resolve) => setTimeout(resolve, 2200)),
+        ]);
+        render(updated);
+        confetti();
+        toast('Names drawn! Time to send the links.');
+      } catch (error) {
+        toast(error.message, { error: true });
+      } finally {
+        clearInterval(ticker);
+        overlay.remove();
+      }
+    }
+
+    async function reset() {
+      if (!confirm('Reset the draw? Everyone will need to unwrap a new match. Links stay the same.')) return;
+      try {
+        render(await api(`/api/admin/${token}/reset`, { method: 'POST' }));
+        toast('Draw reset. Shake the hat again when ready.');
+      } catch (error) {
+        toast(error.message, { error: true });
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

@@ -27,6 +27,10 @@ Before the draw, you can edit people and couples, and everyone keeps their link.
 
 Bookmark the organizer link. It's the only way back to the organizer page. This browser also remembers the exchanges you created, on the home page.
 
+## Privacy
+
+Every page and response tells search engines not to list it. When the `CREATE_PASSCODE` environment variable is set, creating an exchange asks for that passcode, so strangers who find the site can't fill it up. Organizer and participant links work without it. After 10 wrong passcodes in a minute, creating pauses for a minute. Running locally without `CREATE_PASSCODE` needs no passcode.
+
 ## Put it online with Fly.io
 
 Fly.io runs the app on a tiny machine with a 1 GB volume for the data. When nobody is using it, the machine stops and starts again on the next visit. In November 2026 the always-on price was about $2.19 a month for the machine plus $0.15 a month for the volume, so a stopped machine costs less. You need a credit card on the account.
@@ -56,7 +60,13 @@ Fly.io runs the app on a tiny machine with a 1 GB volume for the data. When nobo
    fly deploy --ha=false
    ```
 
-5. Open `https://my-family-santa.fly.dev`, create your exchange, and send the links.
+5. Set the passcode for creating exchanges. Fly keeps it as a secret, so it never goes in the code:
+
+   ```bash
+   fly secrets set CREATE_PASSCODE='pick-something-long'
+   ```
+
+6. Open `https://my-family-santa.fly.dev`, create your exchange, and send the links.
 
 To back up the data at any time:
 

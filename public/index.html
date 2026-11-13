@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
   <title>Secret Santa</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,6 +19,11 @@
       <p>Add your crew, pair up the couples, and send everyone their own secret link.</p>
     </header>
     <div id="editor"></div>
+    <section id="passcode" class="card" hidden>
+      <h2>Passcode 🔑</h2>
+      <p class="hint">This Secret Santa site is private. Enter the passcode to create an exchange.</p>
+      <input id="passcode-input" type="password" autocomplete="current-password" aria-label="Passcode">
+    </section>
     <div class="actions">
       <button id="create" class="btn big">Wrap it up 🎁</button>
     </div>
@@ -33,12 +39,17 @@
     letItSnow();
     const editor = createEditor(document.getElementById('editor'));
 
+    const passcodeInput = document.getElementById('passcode-input');
+    api('/api/config').then(({ passcodeRequired }) => {
+      document.getElementById('passcode').hidden = !passcodeRequired;
+    }).catch(() => {});
+
     const createButton = document.getElementById('create');
     createButton.addEventListener('click', async () => {
       createButton.disabled = true;
       try {
         const setup = editor.read();
-        const { adminToken } = await api('/api/groups', { method: 'POST', body: setup });
+        const { adminToken } = await api('/api/groups', { method: 'POST', body: { ...setup, passcode: passcodeInput.value } });
         rememberExchange(setup.name.trim(), adminToken);
         location.href = `/admin/${adminToken}`;
       } catch (error) {

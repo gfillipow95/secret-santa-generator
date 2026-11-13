@@ -70,6 +70,70 @@ main {
 
 .hero p { margin: 0; font-size: 1.1rem; opacity: 0.9; }
 
+/* The participant's gift tag, hanging from a string of lights. The tag pivots on its hole, so the string always meets it dead center. */
+.lights { display: block; width: 100%; height: auto; margin-top: 4px; }
+
+.lights .bulbs circle:nth-child(odd) { animation: twinkle 2.4s ease-in-out infinite; }
+
+.lights .bulbs circle:nth-child(even) { animation: twinkle 2.4s ease-in-out 1.2s infinite; }
+
+@keyframes twinkle { 50% { opacity: 0.45; } }
+
+.tag {
+  position: relative;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 28px 22px 20px;
+  background: var(--cream);
+  color: var(--ink);
+  border: 3px solid var(--berry);
+  border-radius: 16px;
+  outline: 2px dashed var(--berry);
+  outline-offset: -10px;
+  box-shadow: var(--shadow);
+  transform-origin: 50% 0;
+  transform: rotate(-2deg);
+  animation: swing 5s ease-in-out infinite alternate;
+}
+
+.tag::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin-left: -11px;
+  border-radius: 50%;
+  background: var(--pine-2);
+  border: 3px solid var(--gold);
+}
+
+@keyframes swing {
+  from { transform: rotate(-2deg); }
+  to { transform: rotate(1.5deg); }
+}
+
+.tag .holly { position: absolute; top: 14px; left: 16px; width: 44px; height: 32px; }
+
+.hero .tag p { opacity: 1; }
+
+.hero .tag-to {
+  margin: 0;
+  font-family: 'Mountains of Christmas', cursive;
+  font-weight: 700;
+  font-size: clamp(2.4rem, 9vw, 3.2rem);
+  line-height: 1.05;
+  color: var(--berry);
+  overflow-wrap: anywhere;
+}
+
+.hero .tag-from { margin-top: 6px; color: var(--muted); font-size: 1.05rem; }
+
+.tag-from strong { color: var(--ink); }
+
+.tag .fact { background: #fbefd0; border-color: transparent; color: var(--berry-dark); font-size: 0.9rem; padding: 4px 12px; }
+
 .hero .emoji { font-size: 2.6rem; display: inline-block; animation: bob 3s ease-in-out infinite; }
 
 @keyframes bob {

@@ -13,6 +13,7 @@ export function createEditor(root, { exchange = {}, participants = [], couples =
     el('label', {}, label, optional && el('span', { class: 'optional' }, ' (optional)'), input);
 
   const nameInput = el('input', { maxlength: 60, placeholder: 'Family Gift Swap 2026', value: exchange.name ?? '' });
+  const organizerInput = el('input', { maxlength: 40, placeholder: 'Jordan', value: exchange.organizer ?? '' });
   const budgetInput = el('input', { maxlength: 30, placeholder: '$30', value: exchange.budget ?? '' });
   const dateInput = el('input', { type: 'date', value: exchange.date ?? '' });
   const noteInput = el('textarea', { maxlength: 500, rows: 3, placeholder: "We'll swap gifts at Grandma's after dinner. Ugly sweaters encouraged!" });
@@ -21,6 +22,7 @@ export function createEditor(root, { exchange = {}, participants = [], couples =
   root.append(el('section', { class: 'card' },
     el('h2', {}, 'The exchange 🎄'),
     field('Name your exchange', nameInput),
+    field('Your name, as the organizer', organizerInput, true),
     el('div', { class: 'row' },
       field('Gift budget', budgetInput, true),
       field('Exchange day', dateInput, true),
@@ -30,6 +32,7 @@ export function createEditor(root, { exchange = {}, participants = [], couples =
 
   const read = () => ({
     name: nameInput.value,
+    organizer: organizerInput.value,
     budget: budgetInput.value,
     date: dateInput.value,
     note: noteInput.value,

@@ -32,6 +32,7 @@ async function call(path, method = 'GET', body) {
 
 const setup = {
   name: 'Family Swap',
+  organizer: 'Gen',
   budget: '$30',
   date: '2026-12-24',
   note: 'Bring cocoa',
@@ -48,6 +49,9 @@ test('full exchange: create, draw, reveal, with secrets kept', async () => {
   assert.equal(admin.drawn, false);
   assert.deepEqual(admin.couples, [['Ana', 'Ben'], ['Cy', 'Di']]);
   const tokenOf = Object.fromEntries(admin.participants.map((p) => [p.name, p.token]));
+
+  assert.equal(admin.organizer, 'Gen');
+  assert.equal((await call(`/api/santa/${tokenOf.Ana}`)).body.exchange.organizer, 'Gen', 'participants see who organizes');
 
   const early = await call(`/api/santa/${tokenOf.Ben}/reveal`, 'POST');
   assert.equal(early.status, 409, 'cannot reveal before the draw');
@@ -111,6 +115,7 @@ test('rejects setups that cannot work', async () => {
     [{ ...setup, couples: [['Ana', 'Ben'], ['Ben', 'Cy']] }, /more than one couple/],
     [{ ...setup, couples: [['Ana', 'Zed']] }, /not on the list/],
     [{ ...setup, name: '  ' }, /required/],
+    [{ ...setup, organizer: 'x'.repeat(41) }, /Organizer name/],
     [{ ...setup, date: 'Christmas' }, /Exchange date/],
     [{ ...setup, date: '2026-02-31' }, /Exchange date/],
     [{ ...setup, date: '2026-13-01' }, /Exchange date/],

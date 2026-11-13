@@ -1,5 +1,5 @@
-app = "secret-santa-change-me"
-primary_region = "iad"
+app = "misoolkwan-santa"
+primary_region = "sjc"
 
 [env]
   PORT = "8080"

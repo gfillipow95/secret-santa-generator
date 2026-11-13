@@ -44,10 +44,10 @@ Fly.io runs the app on a tiny machine with a 1 GB volume for the data. When nobo
    fly launch --copy-config --no-deploy --name my-family-santa
    ```
 
-3. Create the volume that holds the data, in the same region as the app (`iad` in `fly.toml`):
+3. Create the volume that holds the data, in the same region as the app (`sjc` in `fly.toml`):
 
    ```bash
-   fly volumes create santa_data --size 1 --region iad --yes
+   fly volumes create santa_data --size 1 --region sjc --yes
    ```
 
 4. Deploy as a single machine. All the data lives on one volume, so the app runs one machine:

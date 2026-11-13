@@ -14,7 +14,7 @@
 <body>
   <main id="app" aria-live="polite"></main>
   <script type="module">
-    import { api, confetti, el, exchangeFacts, letItSnow, toast } from '/common.js';
+    import { api, confetti, el, exchangeFacts, letItSnow, portrait, toast } from '/common.js';
 
     letItSnow();
     const app = document.getElementById('app');
@@ -61,10 +61,15 @@
           markup(LIGHTS),
           el('div', { class: 'tag' },
             markup(HOLLY),
-            el('p', { class: 'tag-to' }, `To: ${view.me.name}`),
-            el('p', { class: 'tag-from' }, view.exchange.organizer
-              ? ['From the head elf, ', el('strong', {}, view.exchange.organizer)]
-              : 'From the North Pole'),
+            el('div', { class: 'tag-body' },
+              el('div', { class: 'polaroid mini' }, portrait(view.me)),
+              el('div', {},
+                el('p', { class: 'tag-to' }, `To: ${view.me.name}`),
+                el('p', { class: 'tag-from' }, view.exchange.organizer
+                  ? ['From the head elf, ', el('strong', {}, view.exchange.organizer)]
+                  : 'From the North Pole'),
+              ),
+            ),
             el('div', { class: 'facts' }, exchangeFacts(view.exchange)),
           ),
           view.exchange.note && el('p', { class: 'note' }, view.exchange.note),
@@ -118,7 +123,10 @@
     function recipientCard(recipient) {
       return el('section', { class: 'card reveal' },
         el('p', { class: 'label' }, "You're the Secret Santa for"),
-        el('p', { class: 'name' }, recipient.name),
+        el('div', { class: 'polaroid taped' },
+          portrait(recipient),
+          el('p', { class: 'name' }, recipient.name),
+        ),
         el('p', { class: 'hint' }, '🤫 Keep it secret. Keep it safe.'),
       );
     }

@@ -114,7 +114,11 @@ main {
   to { transform: rotate(1.5deg); }
 }
 
-.tag .holly { position: absolute; top: 14px; left: 16px; width: 44px; height: 32px; }
+.tag .holly { position: absolute; top: 12px; right: 16px; width: 44px; height: 32px; }
+
+.tag-body { display: flex; align-items: center; justify-content: center; gap: 18px; text-align: left; }
+
+.tag-body > div:last-child { min-width: 0; }
 
 .hero .tag p { opacity: 1; }
 
@@ -303,16 +307,54 @@ textarea { resize: vertical; min-height: 90px; }
 
 .people li {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 4px 12px;
   padding: 10px 0;
   border-bottom: 1px dashed var(--line);
 }
 
-.people li > .btn { grid-column: 2; }
+.people li > .btn { grid-column: 3; }
 
-.people li:has(.badges) > .btn { grid-row: 1 / span 2; }
+.people li:has(.badges) > .btn,
+.people li:has(.badges) > .avatar { grid-row: 1 / span 2; }
+
+.people .who, .people .badges { grid-column: 2; }
+
+.avatar {
+  position: relative;
+  grid-column: 1;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 3px solid var(--gold);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.avatar::after {
+  content: '📷';
+  position: absolute;
+  right: -9px;
+  bottom: -7px;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: var(--berry);
+  border: 2px solid var(--cream);
+  font-size: 9px;
+}
+
+.avatar.has-photo::after { content: '✏️'; }
+
+.avatar:focus-visible { outline: 3px solid var(--berry); outline-offset: 2px; }
+
+.avatar-pic { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; color: var(--cream); font-weight: 800; font-size: 0.95rem; }
+
+.people .add-photo { display: block; font-size: 0.8rem; color: var(--gold-dark); }
 
 .people li:last-child { border-bottom: none; }
 
@@ -414,6 +456,41 @@ textarea { resize: vertical; min-height: 90px; }
 .recent a { color: var(--berry-dark); font-weight: 700; }
 
 .center { text-align: center; }
+
+/* The photo picker */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(10, 30, 24, 0.8);
+}
+
+.picker { width: min(440px, 100%); margin: 0; text-align: center; }
+
+.picker-body { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; align-items: center; }
+
+.picker .crop { display: block; width: 220px; height: 220px; border-radius: 12px; outline: 3px dashed var(--gold); outline-offset: -3px; cursor: grab; touch-action: none; }
+
+.picker .crop:active { cursor: grabbing; }
+
+.picker .hint { margin: 8px 0 0; }
+
+.picker-preview .hint { margin: 0 0 10px; font-weight: 700; }
+
+.polaroid.mini-preview { padding: 6px 6px 4px; transform: rotate(3deg); }
+
+.polaroid.mini-preview .pic { width: 96px; height: 96px; }
+
+.polaroid .caption { display: block; font-family: 'Mountains of Christmas', cursive; font-weight: 700; font-size: 1.3rem; color: var(--berry); max-width: 96px; overflow-wrap: anywhere; }
+
+.picker .zoom { display: flex; align-items: center; gap: 10px; max-width: 280px; margin: 14px auto 0; }
+
+.picker .zoom input { flex: 1; padding: 0; accent-color: var(--berry); }
+
+.picker .actions { flex-wrap: wrap; justify-content: center; }
 
 /* The hat-draw overlay on the organizer page */
 .overlay {
@@ -538,12 +615,42 @@ textarea { resize: vertical; min-height: 90px; }
 
 .reveal .label { margin: 0; color: var(--muted); font-weight: 700; }
 
+/* Polaroids: a small one of you on your tag, a big taped one of your match on the reveal */
+.polaroid {
+  position: relative;
+  display: inline-block;
+  padding: 10px 10px 8px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+  transform: rotate(-3deg);
+}
+
+.polaroid .pic { display: grid; place-items: center; width: 180px; height: 180px; object-fit: cover; color: var(--cream); font-weight: 800; font-size: 3rem; }
+
+.polaroid.taped { margin: 22px 0 14px; }
+
+.polaroid.taped::before {
+  content: '';
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 78px;
+  height: 22px;
+  background: rgba(46, 125, 79, 0.75);
+  transform: translateX(-50%) rotate(4deg);
+}
+
+.polaroid.mini { flex: none; padding: 5px 5px 14px; transform: rotate(-5deg); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); }
+
+.polaroid.mini .pic { width: 64px; height: 64px; font-size: 1.3rem; }
+
 .reveal .name {
   font-family: 'Mountains of Christmas', cursive;
   font-weight: 700;
-  font-size: clamp(2.8rem, 12vw, 4.4rem);
+  font-size: clamp(2.4rem, 10vw, 3.4rem);
   line-height: 1.1;
-  margin: 4px 0 10px;
+  margin: 6px 0 0;
+  max-width: 180px;
   color: var(--berry);
   overflow-wrap: anywhere;
 }

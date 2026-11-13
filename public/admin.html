@@ -14,7 +14,8 @@
 <body>
   <main id="app" aria-live="polite"></main>
   <script type="module">
-    import { api, confetti, copy, el, exchangeFacts, letItSnow, rememberExchange, toast } from '/common.js';
+    import { api, confetti, copy, el, exchangeFacts, letItSnow, portrait, rememberExchange, toast } from '/common.js';
+    import { openPhotoPicker } from '/photo-picker.js';
     import { createEditor } from '/editor.js';
 
     letItSnow();
@@ -93,24 +94,51 @@
         ...group.participants.map((p) => `${p.name}: ${santaLink(p)}`),
       ].join('\n');
 
+      const withPhoto = group.participants.filter((p) => p.photo).length;
       return el('section', { class: 'card' },
         el('h2', {}, 'Secret links 💌'),
-        el('p', { class: 'hint' }, 'Send each person only their own link. Anyone with a link can see that person’s match.'),
+        el('p', { class: 'hint' }, 'Send each person only their own link. Anyone with a link can see that person’s match. Tap a circle to add a photo, and their Santa sees it when they unwrap.'),
         el('ul', { class: 'people' }, group.participants.map((person) =>
           el('li', {},
-            el('span', { class: 'who' }, person.name),
+            el('button', {
+              class: `avatar ${person.photo ? 'has-photo' : ''}`,
+              type: 'button',
+              'aria-label': person.photo ? `Change ${person.name}'s photo` : `Add a photo of ${person.name}`,
+              onclick: () => pickPhoto(person),
+            }, portrait(person, 'avatar-pic')),
+            el('span', { class: 'who' }, person.name, !person.photo && el('span', { class: 'add-photo' }, 'Add a photo')),
             group.drawn && el('span', { class: 'badges' },
               el('span', { class: `badge ${person.revealed ? 'on' : ''}` }, person.revealed ? '🎁 opened' : 'not opened'),
             ),
             el('button', { class: 'btn gold small', onclick: () => copy(santaLink(person), `${person.name}'s link copied`) }, 'Copy link'),
           ),
         )),
-        group.couples.length > 0 && el('p', { class: 'hint', style: 'margin-top:14px' },
+        el('p', { class: 'hint', style: 'margin-top:14px' }, `📸 ${withPhoto} of ${group.participants.length} have a photo`),
+        group.couples.length > 0 && el('p', { class: 'hint' },
           `💕 Kept apart: ${group.couples.map(([a, b]) => `${a} & ${b}`).join(', ')}`),
         el('div', { class: 'actions' },
           el('button', { class: 'btn ghost small', onclick: () => copy(allLinks(), 'All links copied. Paste them wherever you like!') }, 'Copy all links as a message'),
         ),
       );
+    }
+
+    function pickPhoto(person) {
+      const path = `/api/admin/${token}/people/${person.id}/photo`;
+      openPhotoPicker({
+        name: person.name,
+        photo: person.photo,
+        save: async (blob) => {
+          const response = await fetch(path, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error ?? 'Something went wrong. Try again?');
+          render(data);
+          toast(`${person.name}'s photo saved`);
+        },
+        remove: async () => {
+          render(await api(path, { method: 'DELETE' }));
+          toast(`${person.name}'s photo removed`);
+        },
+      });
     }
 
     function editCard(group) {

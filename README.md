@@ -21,6 +21,8 @@ Run the tests with `npm test`.
 2. **Share the links.** The organizer page lists one secret link per person. Send each person only their own link. "Copy all links as a message" copies every link at once, to paste and split up however you like.
 3. **Shake the hat.** After the draw, each person taps a gift on their page to unwrap their match.
 
+On the organizer page, tap the circle next to someone's name to add a photo. You can drag and zoom to frame it, and a preview shows the polaroid their Santa will see. Each photo is cropped to a 400 × 400 JPEG in your browser before upload, which also removes hidden details like where it was taken. People see their own photo on their gift tag, and their match's photo only after they unwrap. Photos can change at any time, even after the draw.
+
 The organizer page shows who has opened their match. It never shows who drew whom, so the organizer can join in too. Anyone holding someone's link can see that person's match, so keep the links private.
 
 Before the draw, you can edit people and couples, and everyone keeps their link. After the draw, only the details (name, budget, date, note) can change. To change who's in, reset the draw. Everyone will then unwrap a fresh match.
@@ -68,10 +70,10 @@ Fly.io runs the app on a tiny machine with a 1 GB volume for the data. When nobo
 
 6. Open `https://my-family-santa.fly.dev`, create your exchange, and send the links.
 
-To back up the data at any time:
+To back up the data and photos at any time:
 
 ```bash
-fly ssh sftp get /data/secret-santa.json
+fly ssh sftp get -R /data santa-backup
 ```
 
 After the holidays, delete the app to stop all charges. This also deletes the data:

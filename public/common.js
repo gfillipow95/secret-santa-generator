@@ -175,3 +175,13 @@ export function recentExchanges() {
     return [];
   }
 }
+
+const INITIALS_COLORS = ['#2e7d4f', '#b8322a', '#b98a1f', '#15402f'];
+
+/** A person's photo, or their initials on a festive color when they don't have one. */
+export function portrait(person, className = 'pic') {
+  if (person.photo) return el('img', { class: className, src: person.photo, alt: '' });
+  const letters = person.name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => [...word][0]).join('').toUpperCase();
+  const hue = [...person.name].reduce((sum, ch) => sum + ch.codePointAt(0), 0) % INITIALS_COLORS.length;
+  return el('span', { class: `${className} initials`, style: `background:${INITIALS_COLORS[hue]}`, 'aria-hidden': 'true' }, letters);
+}

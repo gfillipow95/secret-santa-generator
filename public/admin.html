@@ -23,6 +23,8 @@
     const token = location.pathname.split('/').filter(Boolean).pop();
     const santaLink = (person) => `${location.origin}/santa/${person.token}`;
     let editing = false;
+    let gallery = [];
+    api('/api/gallery').then((images) => { gallery = images; }).catch(() => {});
 
     async function load() {
       try {
@@ -127,6 +129,7 @@
       openPhotoPicker({
         name: person.name,
         photo: person.photo,
+        gallery,
         save: async (blob) => {
           const response = await fetch(path, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
           const data = await response.json().catch(() => ({}));

@@ -12,11 +12,12 @@ const loadImage = (src) => new Promise((resolve, reject) => {
 });
 
 /**
- * Opens the photo picker for one person. Without a current photo it goes
- * straight to the file chooser, so call it from a click. `save` gets a
+ * Opens the photo picker for one person. Call it from a click: without a
+ * current photo or a gallery it goes straight to the file chooser. Gallery
+ * pictures are cropped and saved just like an uploaded photo. `save` gets a
  * square JPEG blob; `remove` is offered only when they already have a photo.
  */
-export function openPhotoPicker({ name, photo, save, remove }) {
+export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
   const fileInput = el('input', { type: 'file', accept: 'image/*', hidden: true });
   const crop = el('canvas', { class: 'crop', width: VIEW * devicePixelRatio, height: VIEW * devicePixelRatio, 'aria-label': `Drag to position ${name}'s photo` });
   const preview = el('canvas', { class: 'pic', width: PREVIEW * devicePixelRatio, height: PREVIEW * devicePixelRatio });
@@ -66,6 +67,7 @@ export function openPhotoPicker({ name, photo, save, remove }) {
     x = (VIEW - w) / 2;
     y = (VIEW - h) / 2;
     draw();
+    setView('photo');
     if (!backdrop.isConnected) document.body.append(backdrop);
     saveButton.disabled = false;
   };
@@ -136,9 +138,25 @@ export function openPhotoPicker({ name, photo, save, remove }) {
   const removeButton = photo && el('button', { class: 'btn gold', type: 'button' }, 'Remove');
   removeButton?.addEventListener('click', () => run(removeButton, remove));
 
-  const backdrop = el('div', { class: 'modal', onclick: (event) => { if (event.target === backdrop) close(); } },
-    el('section', { class: 'card picker', role: 'dialog', 'aria-modal': 'true', 'aria-label': `Photo for ${name}` },
-      el('h2', {}, `Photo for ${name}`),
+  const cancelButton = () => el('button', { class: 'btn gold', type: 'button', onclick: close }, 'Cancel');
+  const uploadTab = el('button', { type: 'button', onclick: () => fileInput.click() }, 'Upload a photo');
+  const galleryTab = el('button', { type: 'button', onclick: () => setView('gallery') }, 'Pick a hamster');
+  const tiles = gallery.map((src) => el('button', {
+    class: 'tile',
+    type: 'button',
+    'aria-label': 'Use this hamster',
+    onclick: () => show(src),
+  }, el('img', { src, alt: '', loading: 'lazy' })));
+
+  const galleryView = el('div', { class: 'gallery' },
+    el('div', { class: 'tiles' }, tiles),
+    el('div', { class: 'actions' },
+      el('button', { class: 'btn gold', type: 'button', onclick: () => show(gallery[Math.floor(Math.random() * gallery.length)]) }, 'Surprise me'),
+      cancelButton(),
+    ),
+  );
+
+  const photoView = el('div', {},
       el('div', { class: 'picker-body' },
         el('div', {},
           crop,
@@ -153,14 +171,34 @@ export function openPhotoPicker({ name, photo, save, remove }) {
       el('div', { class: 'actions' },
         chooseButton,
         removeButton,
-        el('button', { class: 'btn gold', type: 'button', onclick: close }, 'Cancel'),
+        cancelButton(),
         saveButton,
       ),
+  );
+
+  function setView(view) {
+    photoView.hidden = view !== 'photo';
+    galleryView.hidden = view !== 'gallery';
+    galleryTab.classList.toggle('on', view === 'gallery');
+  }
+
+  const backdrop = el('div', { class: 'modal', onclick: (event) => { if (event.target === backdrop) close(); } },
+    el('section', { class: 'card picker', role: 'dialog', 'aria-modal': 'true', 'aria-label': `Photo for ${name}` },
+      el('h2', {}, `Photo for ${name}`),
+      gallery.length > 0 && el('div', { class: 'tabs' }, uploadTab, galleryTab),
+      photoView,
+      galleryView,
     ),
   );
 
   fileInput.addEventListener('cancel', () => { if (!backdrop.isConnected) close(); });
   document.body.append(fileInput);
-  if (photo) show(photo);
-  else fileInput.click();
+  if (photo) {
+    show(photo);
+  } else if (gallery.length > 0) {
+    setView('gallery');
+    document.body.append(backdrop);
+  } else {
+    fileInput.click();
+  }
 }

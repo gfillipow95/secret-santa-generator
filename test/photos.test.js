@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
@@ -98,4 +98,30 @@ test('only small JPEG photos for real people are accepted', async () => {
   assert.equal((await call(`/api/admin/${adminToken}/people/nobody/photo`, 'PUT', jpeg(), 'image/jpeg')).status, 404);
   assert.equal((await call(`/api/admin/wrong/people/x/photo`, 'PUT', jpeg(), 'image/jpeg')).status, 404);
   assert.equal((await fetch(`${base}/photos/../db.json`)).status, 404);
+});
+
+test('the gallery lists every image in its folder', async () => {
+  const galleryDir = mkdtempSync(join(tmpdir(), 'santa-gallery-'));
+  for (const file of ['b-hamster.png', 'a-hamster.jpg', 'c.webp', 'd.gif', 'notes.txt', '.gitkeep']) writeFileSync(join(galleryDir, file), 'x');
+  const app = createApp({ dataFile: join(dir, 'gallery-db.json'), galleryDir }).listen(0);
+  await new Promise((resolve) => app.once('listening', resolve));
+  const url = `http://127.0.0.1:${app.address().port}`;
+  try {
+    const list = await fetch(`${url}/api/gallery`).then((r) => r.json());
+    assert.deepEqual(list, ['/gallery/a-hamster.jpg', '/gallery/b-hamster.png', '/gallery/c.webp', '/gallery/d.gif']);
+    assert.equal((await fetch(url + list[0])).status, 200);
+  } finally {
+    app.close();
+    rmSync(galleryDir, { recursive: true, force: true });
+  }
+});
+
+test('the gallery is empty when its folder is missing', async () => {
+  const app = createApp({ dataFile: join(dir, 'gallery-db2.json'), galleryDir: join(dir, 'no-such-folder') }).listen(0);
+  await new Promise((resolve) => app.once('listening', resolve));
+  try {
+    assert.deepEqual(await fetch(`http://127.0.0.1:${app.address().port}/api/gallery`).then((r) => r.json()), []);
+  } finally {
+    app.close();
+  }
 });

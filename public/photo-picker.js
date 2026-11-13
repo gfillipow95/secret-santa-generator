@@ -54,7 +54,8 @@ export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
     paint(preview);
   };
 
-  const show = async (src) => {
+  let source = 'upload';
+  const show = async (src, from = 'upload') => {
     try {
       image = await loadImage(src);
     } catch (error) {
@@ -67,6 +68,7 @@ export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
     x = (VIEW - w) / 2;
     y = (VIEW - h) / 2;
     draw();
+    source = from;
     setView('photo');
     if (!backdrop.isConnected) document.body.append(backdrop);
     saveButton.disabled = false;
@@ -145,13 +147,13 @@ export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
     class: 'tile',
     type: 'button',
     'aria-label': 'Use this hamster',
-    onclick: () => show(src),
+    onclick: () => show(src, 'gallery'),
   }, el('img', { src, alt: '', loading: 'lazy' })));
 
   const galleryView = el('div', { class: 'gallery' },
     el('div', { class: 'tiles' }, tiles),
     el('div', { class: 'actions' },
-      el('button', { class: 'btn gold', type: 'button', onclick: () => show(gallery[Math.floor(Math.random() * gallery.length)]) }, 'Surprise me'),
+      el('button', { class: 'btn gold', type: 'button', onclick: () => show(gallery[Math.floor(Math.random() * gallery.length)], 'gallery') }, 'Surprise me'),
       cancelButton(),
     ),
   );
@@ -179,7 +181,11 @@ export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
   function setView(view) {
     photoView.hidden = view !== 'photo';
     galleryView.hidden = view !== 'gallery';
-    galleryTab.classList.toggle('on', view === 'gallery');
+    const hamster = view === 'gallery' || source === 'gallery';
+    galleryTab.classList.toggle('on', hamster);
+    uploadTab.classList.toggle('on', !hamster);
+    galleryTab.setAttribute('aria-pressed', String(hamster));
+    uploadTab.setAttribute('aria-pressed', String(!hamster));
   }
 
   const backdrop = el('div', { class: 'modal', onclick: (event) => { if (event.target === backdrop) close(); } },

@@ -15,6 +15,7 @@
   <main id="app" aria-live="polite"></main>
   <script type="module">
     import { api, confetti, el, exchangeFacts, fill, letItSnow, portrait, toast } from '/common.js';
+    import { createRichEditor } from '/rich-editor.js';
 
     letItSnow();
     const app = document.getElementById('app');
@@ -141,9 +142,16 @@
       return card;
     }
 
-    const listPanel = (kind, title, text) => el('div', { class: `list-panel ${kind}` },
+    // `html` comes from the server already cleaned, so it's safe to show as formatting.
+    const formatted = (html) => {
+      const block = el('div', { class: 'rich' });
+      block.innerHTML = html;
+      return block;
+    };
+
+    const listPanel = (kind, title, html) => el('div', { class: `list-panel ${kind}` },
       el('h3', {}, title),
-      text ? el('p', {}, text) : el('p', { class: 'hint' }, "Nothing yet. They might add one later, so check back here."),
+      html ? formatted(html) : el('p', { class: 'hint' }, "Nothing yet. They might add one later, so check back here."),
     );
 
     function recipientCard(recipient) {
@@ -153,42 +161,37 @@
           portrait(recipient),
           el('p', { class: 'name' }, recipient.name),
         ),
-        listPanel('love', `🎁 ${recipient.name} would love`, recipient.wishlist),
-        recipient.hardNos && listPanel('nos', '🚫 Hard nos', recipient.hardNos),
+        listPanel('love', `🎁 ${recipient.name} would love`, recipient.wishlistHtml),
+        recipient.hardNosHtml && listPanel('nos', '🚫 Hard nos', recipient.hardNosHtml),
         el('p', { class: 'hint' }, '🤫 Keep it secret. Keep it safe.'),
       );
     }
 
     function wishlistCard(view) {
       const card = el('section', { class: 'card wishlist-card' });
-      let lists = { wishlist: view.me.wishlist, hardNos: view.me.hardNos };
-      const hasLists = () => Boolean(lists.wishlist || lists.hardNos);
+      let lists = { wishlistHtml: view.me.wishlistHtml, hardNosHtml: view.me.hardNosHtml };
+      const hasLists = () => Boolean(lists.wishlistHtml || lists.hardNosHtml);
       const title = () => el('h2', {}, 'Your wishlist 📝');
 
       function showSummary(justSaved) {
         fill(card, 
           title(),
           justSaved && el('p', { class: 'saved-note', role: 'status' }, '✓ Saved. Your Santa will see this.'),
-          lists.wishlist && listPanel('love', "🎁 Things I'd love", lists.wishlist),
-          lists.hardNos && listPanel('nos', '🚫 Hard nos', lists.hardNos),
+          lists.wishlistHtml && listPanel('love', "🎁 Things I'd love", lists.wishlistHtml),
+          lists.hardNosHtml && listPanel('nos', '🚫 Hard nos', lists.hardNosHtml),
           el('div', { class: 'actions' }, el('button', { class: 'btn gold', type: 'button', onclick: showForm }, '✏️ Edit my lists')),
         );
       }
 
       function showForm() {
-        const box = (label, value, placeholder) => {
-          const input = el('textarea', { maxlength: 1000, rows: 4, placeholder, 'aria-label': label });
-          input.value = value;
-          return input;
-        };
-        const wish = box("Things I'd love", lists.wishlist, 'Cozy socks (size M)\nAnything dark chocolate\nA good mystery novel');
-        const nos = box('Hard nos', lists.hardNos, 'No candles, please\nAllergic to peanuts');
+        const wish = createRichEditor({ label: "Things I'd love", html: lists.wishlistHtml, placeholder: 'Cozy socks (size M)\nAnything dark chocolate\nA good mystery novel' });
+        const nos = createRichEditor({ label: 'Hard nos', html: lists.hardNosHtml, placeholder: 'No candles, please\nAllergic to peanuts' });
         const save = el('button', { class: 'btn', type: 'button' }, 'Save my lists');
         save.addEventListener('click', async () => {
           save.disabled = true;
           try {
-            const updated = await api(`/api/santa/${token}/wishlist`, { method: 'PUT', body: { wishlist: wish.value, hardNos: nos.value } });
-            lists = { wishlist: updated.me.wishlist, hardNos: updated.me.hardNos };
+            const updated = await api(`/api/santa/${token}/wishlist`, { method: 'PUT', body: { wishlistHtml: wish.getHtml(), hardNosHtml: nos.getHtml() } });
+            lists = { wishlistHtml: updated.me.wishlistHtml, hardNosHtml: updated.me.hardNosHtml };
             if (hasLists()) showSummary(true);
             else toast('Saved. Your lists are empty for now.');
           } catch (error) {
@@ -200,8 +203,8 @@
         fill(card, 
           title(),
           el('p', { class: 'hint' }, 'Only your Secret Santa sees these.'),
-          el('label', { class: 'list-label love' }, "🎁 Things I'd love", wish),
-          el('label', { class: 'list-label nos' }, '🚫 Hard nos', nos),
+          el('div', { class: 'list-label love' }, el('span', {}, "🎁 Things I'd love"), wish.element),
+          el('div', { class: 'list-label nos' }, el('span', {}, '🚫 Hard nos'), nos.element),
           el('div', { class: 'actions' },
             hasLists() && el('button', { class: 'btn gold', type: 'button', onclick: () => showSummary(false) }, 'Cancel'),
             save,

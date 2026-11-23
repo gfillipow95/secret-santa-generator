@@ -798,7 +798,30 @@ textarea { resize: vertical; min-height: 90px; }
 
 .list-label.nos { color: var(--berry); }
 
-.list-label textarea { margin-top: 6px; color: var(--ink); font-weight: 400; }
+.list-label { margin-bottom: 14px; font-weight: 700; font-size: 0.92rem; }
+
+/* Formatted lists: line breaks typed before formatting existed still show */
+.rich, .rich-area { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+
+.rich p, .rich-area p { margin: 0; }
+
+.rich ul, .rich ol, .rich-area ul, .rich-area ol { margin: 4px 0; padding-left: 24px; }
+
+.rich a, .rich-area a { color: var(--berry); font-weight: 700; }
+
+.rich-editor { margin-top: 6px; border: 2px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden; }
+
+.rich-editor:focus-within { border-color: var(--gold); }
+
+.rich-toolbar { display: flex; flex-wrap: wrap; gap: 2px; padding: 5px; background: var(--cream-2); border-bottom: 2px solid var(--line); }
+
+.rich-tool { min-width: 32px; padding: 5px 7px; border: none; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 0.88rem; cursor: pointer; }
+
+.rich-tool:hover, .rich-tool.on { background: var(--gold); }
+
+.rich-area { min-height: 92px; padding: 10px 14px; color: var(--ink); font-weight: 400; font-size: 1rem; outline: none; }
+
+.rich-area:empty::before { content: attr(data-placeholder); color: #a89383; pointer-events: none; }
 
 .saved-note {
   display: inline-block;

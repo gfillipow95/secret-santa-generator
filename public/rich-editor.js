@@ -39,19 +39,74 @@ export function createRichEditor({ label, html = '', placeholder = '' }) {
     onclick: () => run(tool.command),
   }, tool.label));
 
-  function addLink() {
-    const typed = window.prompt('Paste the link (like https://example.com/gift)');
-    if (!typed?.trim()) return;
-    const href = /^(https?:|mailto:)/i.test(typed.trim()) ? typed.trim() : `https://${typed.trim()}`;
+  // Links are typed into a small box in the editor, not window.prompt(), which many
+  // in-app browsers (and the desktop app's own browser) don't support.
+  const linkInput = el('input', { type: 'url', inputmode: 'url', placeholder: 'https://example.com/gift', 'aria-label': 'Link address' });
+  const linkRow = el('div', { class: 'rich-link-row', hidden: true },
+    linkInput,
+    el('button', { class: 'btn gold small', type: 'button', onclick: () => addLink() }, 'Add link'),
+    el('button', { class: 'btn gold small', type: 'button', onclick: () => closeLinkRow() }, 'Cancel'),
+  );
+  let savedRange = null;
+
+  function openLinkRow() {
     const selection = getSelection();
-    if (selection && !selection.isCollapsed && area.contains(selection.anchorNode)) document.execCommand('createLink', false, href);
-    else document.execCommand('insertHTML', false, `<a href="${escape(href)}">${escape(typed.trim())}</a>&nbsp;`);
+    if (selection?.rangeCount && area.contains(selection.anchorNode)) {
+      savedRange = selection.getRangeAt(0).cloneRange();
+    } else {
+      savedRange = document.createRange();
+      savedRange.selectNodeContents(area);
+      savedRange.collapse(false);
+    }
+    linkRow.hidden = false;
+    linkInput.value = '';
+    linkInput.focus();
   }
 
-  function run(command) {
+  function restoreSelection() {
     area.focus();
-    if (command === 'link') addLink();
-    else document.execCommand(command);
+    if (!savedRange) return;
+    const selection = getSelection();
+    selection.removeAllRanges();
+    selection.addRange(savedRange);
+  }
+
+  function closeLinkRow() {
+    linkRow.hidden = true;
+    restoreSelection();
+  }
+
+  function addLink() {
+    const typed = linkInput.value.trim();
+    if (!typed) {
+      linkInput.focus();
+      return;
+    }
+    const href = /^(https?:|mailto:)/i.test(typed) ? typed : `https://${typed}`;
+    linkRow.hidden = true;
+    restoreSelection();
+    if (savedRange && !savedRange.collapsed) document.execCommand('createLink', false, href);
+    else document.execCommand('insertHTML', false, `<a href="${escape(href)}">${escape(typed)}</a>&nbsp;`);
+    showActive();
+  }
+
+  linkInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addLink();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      closeLinkRow();
+    }
+  });
+
+  function run(command) {
+    if (command === 'link') {
+      openLinkRow();
+      return;
+    }
+    area.focus();
+    document.execCommand(command);
     showActive();
   }
 
@@ -74,6 +129,7 @@ export function createRichEditor({ label, html = '', placeholder = '' }) {
   return {
     element: el('div', { class: 'rich-editor' },
       el('div', { class: 'rich-toolbar', role: 'toolbar', 'aria-label': `${label} formatting` }, buttons),
+      linkRow,
       area,
     ),
     getHtml: () => area.innerHTML,

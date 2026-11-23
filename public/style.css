@@ -819,6 +819,10 @@ textarea { resize: vertical; min-height: 90px; }
 
 .rich-tool:hover, .rich-tool.on { background: var(--gold); }
 
+.rich-link-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; background: var(--cream-2); border-bottom: 2px solid var(--line); }
+
+.rich-link-row input { flex: 1 1 160px; min-width: 0; margin: 0; padding: 8px 12px; font-size: 0.95rem; }
+
 .rich-area { min-height: 92px; padding: 10px 14px; color: var(--ink); font-weight: 400; font-size: 1rem; outline: none; }
 
 .rich-area:empty::before { content: attr(data-placeholder); color: #a89383; pointer-events: none; }

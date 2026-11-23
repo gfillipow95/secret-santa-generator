@@ -55,11 +55,12 @@
 
     function render(view) {
       document.title = `${view.me.name}'s Secret Santa`;
+      const { budget } = view.exchange;
       app.replaceChildren(
         el('header', { class: 'hero' },
           el('h1', {}, view.exchange.name),
           markup(LIGHTS),
-          el('div', { class: 'tag' },
+          el('div', { class: `tag ${budget ? 'has-budget' : ''}` },
             markup(HOLLY),
             el('div', { class: 'tag-body' },
               el('div', { class: 'polaroid mini' }, portrait(view.me)),
@@ -70,7 +71,11 @@
                   : 'From the North Pole'),
               ),
             ),
-            el('div', { class: 'facts' }, exchangeFacts(view.exchange)),
+            el('div', { class: 'facts' }, exchangeFacts({ ...view.exchange, budget: '' })),
+            budget && el('div', { class: 'price-tag' },
+              el('span', { class: 'price-label' }, 'Spend up to'),
+              el('span', { class: 'price' }, budget),
+            ),
           ),
           view.exchange.note && el('p', { class: 'note' }, view.exchange.note),
         ),
@@ -96,15 +101,19 @@
         el('span', { class: 'gift-box' }),
         el('span', { class: 'gift-lid' }, el('span', { class: 'gift-bow' })),
       );
+      const stage = el('div', { class: 'gift-stage ringed' }, gift, el('span', { class: 'tap-me', 'aria-hidden': 'true' }, 'Tap me!'));
+      const unwrap = el('button', { class: 'btn', type: 'button', onclick: () => gift.click() }, 'Unwrap my match');
       const card = el('section', { class: 'card center' },
         el('h2', {}, 'A gift for you…'),
         el('p', { class: 'hint' }, "Make sure nobody's peeking over your shoulder!"),
-        el('div', { class: 'gift-stage' }, gift),
-        el('p', { class: 'tap' }, 'Tap the gift to unwrap your match'),
+        stage,
+        el('div', { class: 'actions' }, unwrap),
       );
 
       gift.addEventListener('click', async () => {
         gift.disabled = true;
+        unwrap.disabled = true;
+        stage.classList.add('opening');
         gift.classList.add('opening');
         try {
           const [updated] = await Promise.all([
@@ -115,12 +124,19 @@
           confetti();
         } catch (error) {
           gift.disabled = false;
+          unwrap.disabled = false;
+          stage.classList.remove('opening');
           gift.classList.remove('opening');
           toast(error.message, { error: true });
         }
       });
       return card;
     }
+
+    const listPanel = (kind, title, text) => el('div', { class: `list-panel ${kind}` },
+      el('h3', {}, title),
+      text ? el('p', {}, text) : el('p', { class: 'hint' }, "Nothing yet. They might add one later, so check back here."),
+    );
 
     function recipientCard(recipient) {
       return el('section', { class: 'card reveal' },
@@ -129,47 +145,65 @@
           portrait(recipient),
           el('p', { class: 'name' }, recipient.name),
         ),
-        el('div', { class: 'wishlist' },
-          el('h3', {}, `🎁 ${recipient.name}'s wishlist`),
-          recipient.wishlist
-            ? el('p', {}, recipient.wishlist)
-            : el('p', { class: 'hint' }, "Nothing yet. They might add one later, so check back here."),
-        ),
+        listPanel('love', `🎁 ${recipient.name} would love`, recipient.wishlist),
+        recipient.hardNos && listPanel('nos', '🚫 Hard nos', recipient.hardNos),
         el('p', { class: 'hint' }, '🤫 Keep it secret. Keep it safe.'),
       );
     }
 
     function wishlistCard(view) {
-      const input = el('textarea', {
-        maxlength: 1000,
-        rows: 5,
-        placeholder: 'Cozy socks (size M)\nAnything dark chocolate\nA good mystery novel',
-        'aria-label': 'Your wishlist',
-      });
-      input.value = view.me.wishlist;
-      const saved = el('span', { class: 'saved', role: 'status' });
-      const button = el('button', { class: 'btn gold' }, 'Save my wishlist');
-      button.addEventListener('click', async () => {
-        button.disabled = true;
-        try {
-          const updated = await api(`/api/santa/${token}/wishlist`, { method: 'PUT', body: { wishlist: input.value } });
-          input.value = updated.me.wishlist;
-          saved.textContent = '✓ Saved';
-          saved.classList.add('show');
-          setTimeout(() => saved.classList.remove('show'), 2500);
-        } catch (error) {
-          toast(error.message, { error: true });
-        } finally {
-          button.disabled = false;
-        }
-      });
+      const card = el('section', { class: 'card wishlist-card' });
+      let lists = { wishlist: view.me.wishlist, hardNos: view.me.hardNos };
+      const hasLists = () => Boolean(lists.wishlist || lists.hardNos);
+      const title = () => el('h2', {}, 'Your wishlist 📝');
 
-      return el('section', { class: 'card' },
-        el('h2', {}, 'Your wishlist 📝'),
-        el('p', { class: 'hint' }, 'Only your Secret Santa sees this. Sizes, favorite colors, and hard nos all help.'),
-        input,
-        el('div', { class: 'wishlist-actions' }, button, saved),
-      );
+      function showSummary(justSaved) {
+        card.replaceChildren(
+          title(),
+          justSaved && el('p', { class: 'saved-note', role: 'status' }, '✓ Saved. Your Santa will see this.'),
+          lists.wishlist && listPanel('love', "🎁 Things I'd love", lists.wishlist),
+          lists.hardNos && listPanel('nos', '🚫 Hard nos', lists.hardNos),
+          el('div', { class: 'actions' }, el('button', { class: 'btn gold', type: 'button', onclick: showForm }, '✏️ Edit my lists')),
+        );
+      }
+
+      function showForm() {
+        const box = (label, value, placeholder) => {
+          const input = el('textarea', { maxlength: 1000, rows: 4, placeholder, 'aria-label': label });
+          input.value = value;
+          return input;
+        };
+        const wish = box("Things I'd love", lists.wishlist, 'Cozy socks (size M)\nAnything dark chocolate\nA good mystery novel');
+        const nos = box('Hard nos', lists.hardNos, 'No candles, please\nAllergic to peanuts');
+        const save = el('button', { class: 'btn', type: 'button' }, 'Save my lists');
+        save.addEventListener('click', async () => {
+          save.disabled = true;
+          try {
+            const updated = await api(`/api/santa/${token}/wishlist`, { method: 'PUT', body: { wishlist: wish.value, hardNos: nos.value } });
+            lists = { wishlist: updated.me.wishlist, hardNos: updated.me.hardNos };
+            if (hasLists()) showSummary(true);
+            else toast('Saved. Your lists are empty for now.');
+          } catch (error) {
+            toast(error.message, { error: true });
+          } finally {
+            save.disabled = false;
+          }
+        });
+        card.replaceChildren(
+          title(),
+          el('p', { class: 'hint' }, 'Only your Secret Santa sees these.'),
+          el('label', { class: 'list-label love' }, "🎁 Things I'd love", wish),
+          el('label', { class: 'list-label nos' }, '🚫 Hard nos', nos),
+          el('div', { class: 'actions' },
+            hasLists() && el('button', { class: 'btn gold', type: 'button', onclick: () => showSummary(false) }, 'Cancel'),
+            save,
+          ),
+        );
+      }
+
+      if (hasLists()) showSummary(false);
+      else showForm();
+      return card;
     }
 
     load();

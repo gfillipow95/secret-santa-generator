@@ -70,3 +70,22 @@ test('wishlists must be text of 1000 characters or fewer', async () => {
   assert.equal((await call(`/api/santa/${tokenOf.Cy}/wishlist`, 'PUT', { wishlist: 42 })).status, 400);
   assert.equal((await call('/api/santa/nope/wishlist', 'PUT', { wishlist: 'hi' })).status, 404);
 });
+
+test('hard nos are saved alongside the wishlist and shown the same way', async () => {
+  const { adminToken, tokenOf } = await exchange();
+  const saved = (await call(`/api/santa/${tokenOf.Ana}/wishlist`, 'PUT', { wishlist: '', hardNos: ' No candles\nPeanut allergy ' })).body;
+  assert.equal(saved.me.hardNos, 'No candles\nPeanut allergy');
+  assert.equal(saved.me.wishlist, '');
+
+  const admin = (await call(`/api/admin/${adminToken}`)).body;
+  assert.equal(admin.participants.find((p) => p.name === 'Ana').hasWishlist, true, 'hard nos alone count as a list');
+  assert.ok(!JSON.stringify(admin).includes('candles'));
+
+  await call(`/api/admin/${adminToken}/draw`, 'POST');
+  for (const name of ['Ben', 'Cy']) {
+    assert.equal((await call(`/api/santa/${tokenOf[name]}`)).body.recipient, null);
+    const { recipient } = (await call(`/api/santa/${tokenOf[name]}/reveal`, 'POST')).body;
+    assert.equal(recipient.hardNos, recipient.name === 'Ana' ? 'No candles\nPeanut allergy' : '');
+  }
+  assert.equal((await call(`/api/santa/${tokenOf.Ana}/wishlist`, 'PUT', { wishlist: 'Socks', hardNos: 'x'.repeat(1001) })).status, 400);
+});

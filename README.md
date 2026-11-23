@@ -25,7 +25,7 @@ On the organizer page, tap the circle next to someone's name to add a photo. You
 
 Instead of uploading a photo, the organizer can pick a hamster from the gallery. Every JPEG, PNG, WebP, or GIF in `public/gallery` shows up there, so add more by dropping files into that folder and redeploying. The folder's images are kept out of git, because they're other people's artwork. That means they only exist on the computer you deploy from, so back them up yourself.
 
-Each person's wishlist shows under their photo when their Santa unwraps them. The organizer sees who has a wishlist, but not what's on it.
+Each person can fill in two lists: things they'd love, and hard nos. After saving, the boxes turn into a summary with an Edit button. Both lists show under their photo, exactly as typed, when their Santa unwraps them. The organizer sees who has filled them in, but not what they say. When a budget is set, it hangs off the participant's gift tag as a gold "Spend up to" price tag.
 
 The organizer page shows who has opened their match. It never shows who drew whom, so the organizer can join in too. Anyone holding someone's link can see that person's match, so keep the links private.
 

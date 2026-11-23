@@ -110,3 +110,41 @@ test('formatted lists have the same 1000-character limit, counted on the words',
     close();
   }
 });
+
+test('web addresses in any list open in a new tab, without changing the words', async () => {
+  const withUrls = structuredClone(liveShaped);
+  withUrls.groups.g1.participants[0].wishlist = 'This one: https://example.com/slippers?size=8&color=red.\nOr www.example.com/tea';
+  const { call, close } = await start(withUrls);
+  try {
+    const old = (await call('/api/santa/tok-ana')).body.me;
+    assert.equal(old.wishlist, 'This one: https://example.com/slippers?size=8&color=red.\nOr www.example.com/tea', 'the saved text is untouched');
+    assert.equal(old.wishlistHtml,
+      'This one: <a href="https://example.com/slippers?size=8&amp;color=red" target="_blank" rel="noopener noreferrer nofollow">https://example.com/slippers?size=8&amp;color=red</a>.\n'
+      + 'Or <a href="https://www.example.com/tea" target="_blank" rel="noopener noreferrer nofollow">www.example.com/tea</a>');
+
+    const rich = (await call('/api/santa/tok-cy/wishlist', 'PUT', {
+      wishlistHtml: '<p><b>Mittens</b> https://example.com/mittens and <a href="https://example.com/hat">https://example.com/hat</a></p>',
+      hardNosHtml: '',
+    })).body.me;
+    assert.equal(rich.wishlistHtml,
+      '<p><b>Mittens</b> <a href="https://example.com/mittens" target="_blank" rel="noopener noreferrer nofollow">https://example.com/mittens</a> and '
+      + '<a href="https://example.com/hat" target="_blank" rel="noopener noreferrer nofollow">https://example.com/hat</a></p>', 'existing links are left alone');
+  } finally {
+    close();
+  }
+});
+
+test('web addresses cannot be used to sneak code into the page', async () => {
+  const sneaky = structuredClone(liveShaped);
+  sneaky.groups.g1.participants[0].wishlist = 'https://x.com/"onmouseover="alert(1) and "https://example.com/quoted" and https://y.com/\'><script>alert(2)</script>';
+  const { call, close } = await start(sneaky);
+  try {
+    const html = (await call('/api/santa/tok-ana')).body.me.wishlistHtml;
+    assert.doesNotMatch(html, /<[^>]*onmouseover/i, 'the address cannot add attributes to its link');
+    assert.ok(!html.includes('<script'), 'no script tag gets through');
+    assert.match(html, /&lt;script&gt;/, 'it shows as harmless text instead');
+    assert.match(html, /<a href="https:\/\/example.com\/quoted" target="_blank" rel="noopener noreferrer nofollow">https:\/\/example.com\/quoted<\/a>/);
+  } finally {
+    close();
+  }
+});

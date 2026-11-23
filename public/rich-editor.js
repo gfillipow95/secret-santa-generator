@@ -100,6 +100,50 @@ export function createRichEditor({ label, html = '', placeholder = '' }) {
     }
   });
 
+  // While editing, clicking a link puts the cursor in it like any editor, and shows a bar to open it in a new tab or remove it.
+  const openLink = el('a', { class: 'btn gold small', target: '_blank', rel: 'noopener noreferrer nofollow' }, 'Open ↗');
+  const linkAddress = el('span', { class: 'rich-link-address' });
+  let clickedLink = null;
+  const linkInfo = el('div', { class: 'rich-link-row', hidden: true },
+    linkAddress,
+    openLink,
+    el('button', { class: 'btn gold small', type: 'button', onclick: () => removeLink() }, 'Remove link'),
+  );
+
+  function showLinkInfo(link) {
+    clickedLink = link;
+    linkAddress.textContent = link.getAttribute('href');
+    openLink.href = link.href;
+    linkInfo.hidden = !link;
+  }
+
+  function removeLink() {
+    if (!clickedLink) return;
+    const range = document.createRange();
+    range.selectNodeContents(clickedLink);
+    area.focus();
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    document.execCommand('unlink');
+    linkInfo.hidden = true;
+    clickedLink = null;
+  }
+
+  area.addEventListener('click', (event) => {
+    const link = event.target.closest?.('a');
+    if (!link || !area.contains(link)) {
+      linkInfo.hidden = true;
+      return;
+    }
+    if (event.metaKey || event.ctrlKey) {
+      event.preventDefault();
+      window.open(link.href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    showLinkInfo(link);
+  });
+  area.addEventListener('input', () => { linkInfo.hidden = true; });
+
   function run(command) {
     if (command === 'link') {
       openLinkRow();
@@ -110,9 +154,15 @@ export function createRichEditor({ label, html = '', placeholder = '' }) {
     showActive();
   }
 
+  // Links are drawn bold and underlined, so those two buttons ignore that look inside a link.
+  const LINK_LOOK = new Set(['bold', 'underline']);
+
   function showActive() {
+    const anchor = getSelection()?.anchorNode;
+    const inLink = Boolean(anchor && area.contains(anchor) && (anchor.nodeType === 1 ? anchor : anchor.parentElement)?.closest('a'));
     TOOLS.forEach((tool, i) => {
-      const on = tool.command !== 'link' && area.contains(getSelection()?.anchorNode) && document.queryCommandState(tool.command);
+      const on = tool.command !== 'link' && !(inLink && LINK_LOOK.has(tool.command))
+        && area.contains(anchor) && document.queryCommandState(tool.command);
       buttons[i].classList.toggle('on', on);
       buttons[i].setAttribute('aria-pressed', String(on));
     });
@@ -130,6 +180,7 @@ export function createRichEditor({ label, html = '', placeholder = '' }) {
     element: el('div', { class: 'rich-editor' },
       el('div', { class: 'rich-toolbar', role: 'toolbar', 'aria-label': `${label} formatting` }, buttons),
       linkRow,
+      linkInfo,
       area,
     ),
     getHtml: () => area.innerHTML,

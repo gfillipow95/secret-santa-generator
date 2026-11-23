@@ -75,6 +75,7 @@
           view.exchange.note && el('p', { class: 'note' }, view.exchange.note),
         ),
         matchCard(view),
+        wishlistCard(view),
       );
     }
 
@@ -83,6 +84,7 @@
         return el('section', { class: 'card center' },
           el('h2', {}, 'The elves are still busy ⏳'),
           el('p', {}, `Names haven't been drawn yet. Come back to this same link once ${view.exchange.organizer || 'your organizer'} shakes the hat.`),
+          el('p', { class: 'hint' }, 'In the meantime, add your wishlist below so your Santa knows what to get you.'),
         );
       }
       if (!view.revealed) return giftCard(view);
@@ -127,7 +129,46 @@
           portrait(recipient),
           el('p', { class: 'name' }, recipient.name),
         ),
+        el('div', { class: 'wishlist' },
+          el('h3', {}, `🎁 ${recipient.name}'s wishlist`),
+          recipient.wishlist
+            ? el('p', {}, recipient.wishlist)
+            : el('p', { class: 'hint' }, "Nothing yet. They might add one later, so check back here."),
+        ),
         el('p', { class: 'hint' }, '🤫 Keep it secret. Keep it safe.'),
+      );
+    }
+
+    function wishlistCard(view) {
+      const input = el('textarea', {
+        maxlength: 1000,
+        rows: 5,
+        placeholder: 'Cozy socks (size M)\nAnything dark chocolate\nA good mystery novel',
+        'aria-label': 'Your wishlist',
+      });
+      input.value = view.me.wishlist;
+      const saved = el('span', { class: 'saved', role: 'status' });
+      const button = el('button', { class: 'btn gold' }, 'Save my wishlist');
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+          const updated = await api(`/api/santa/${token}/wishlist`, { method: 'PUT', body: { wishlist: input.value } });
+          input.value = updated.me.wishlist;
+          saved.textContent = '✓ Saved';
+          saved.classList.add('show');
+          setTimeout(() => saved.classList.remove('show'), 2500);
+        } catch (error) {
+          toast(error.message, { error: true });
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      return el('section', { class: 'card' },
+        el('h2', {}, 'Your wishlist 📝'),
+        el('p', { class: 'hint' }, 'Only your Secret Santa sees this. Sizes, favorite colors, and hard nos all help.'),
+        input,
+        el('div', { class: 'wishlist-actions' }, button, saved),
       );
     }
 

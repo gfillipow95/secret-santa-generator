@@ -75,7 +75,7 @@
       if (!group.drawn) {
         return el('section', { class: 'card center' },
           el('h2', {}, 'Ready to draw?'),
-          el('p', { class: 'hint' }, "Send out the links whenever you like. Once you draw, everyone can unwrap who they're buying for."),
+          el('p', { class: 'hint' }, "Send out the links whenever you like. People can add wishlists before or after the draw. Once you draw, everyone can unwrap who they're buying for."),
           el('button', { class: 'btn big', onclick: () => draw(group) }, 'Shake the hat 🎩'),
         );
       }
@@ -91,7 +91,7 @@
     function linksCard(group) {
       const allLinks = () => [
         `🎅 Secret Santa: ${group.name}`,
-        "Open your link to see who you're buying for:",
+        "Open your link to see who you're buying for and to add your wishlist:",
         '',
         ...group.participants.map((p) => `${p.name}: ${santaLink(p)}`),
       ].join('\n');
@@ -109,8 +109,9 @@
               onclick: () => pickPhoto(person),
             }, portrait(person, 'avatar-pic')),
             el('span', { class: 'who' }, person.name, !person.photo && el('span', { class: 'add-photo' }, 'Add a photo')),
-            group.drawn && el('span', { class: 'badges' },
-              el('span', { class: `badge ${person.revealed ? 'on' : ''}` }, person.revealed ? '🎁 opened' : 'not opened'),
+            el('span', { class: 'badges' },
+              el('span', { class: `badge ${person.hasWishlist ? 'on' : ''}` }, person.hasWishlist ? '📝 wishlist' : 'no wishlist'),
+              group.drawn && el('span', { class: `badge ${person.revealed ? 'on' : ''}` }, person.revealed ? '🎁 opened' : 'not opened'),
             ),
             el('button', { class: 'btn gold small', onclick: () => copy(santaLink(person), `${person.name}'s link copied`) }, 'Copy link'),
           ),

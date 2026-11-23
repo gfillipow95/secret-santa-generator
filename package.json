@@ -2,7 +2,7 @@
   "name": "secret-santa",
   "version": "1.0.0",
   "private": true,
-  "description": "A festive Secret Santa draw with private links and no couples drawing each other.",
+  "description": "A festive Secret Santa draw with private links, wishlists, and no couples drawing each other.",
   "type": "module",
   "main": "server.js",
   "engines": {

@@ -1,6 +1,6 @@
 # 🎅 Secret Santa
 
-A festive Secret Santa draw. Each person gets a private link where they unwrap their match. Partners never draw each other.
+A festive Secret Santa draw. Each person gets a private link where they add a wishlist and unwrap their match. Partners never draw each other.
 
 ## Run it on your computer
 
@@ -19,11 +19,13 @@ Run the tests with `npm test`.
 
 1. **Create an exchange.** Add a name, budget, date, and note, then everyone's names. Pair up couples so they can't draw each other.
 2. **Share the links.** The organizer page lists one secret link per person. Send each person only their own link. "Copy all links as a message" copies every link at once, to paste and split up however you like.
-3. **Shake the hat.** After the draw, each person taps a gift on their page to unwrap their match.
+3. **Shake the hat.** People can add wishlists before or after the draw. After the draw, each person taps a gift on their page to unwrap their match.
 
 On the organizer page, tap the circle next to someone's name to add a photo. You can drag and zoom to frame it, and a preview shows the polaroid their Santa will see. Each photo is cropped to a 400 × 400 JPEG in your browser before upload, which also removes hidden details like where it was taken. People see their own photo on their gift tag, and their match's photo only after they unwrap. Photos can change at any time, even after the draw.
 
 Instead of uploading a photo, the organizer can pick a hamster from the gallery. Every JPEG, PNG, WebP, or GIF in `public/gallery` shows up there, so add more by dropping files into that folder and redeploying. The folder's images are kept out of git, because they're other people's artwork. That means they only exist on the computer you deploy from, so back them up yourself.
+
+Each person's wishlist shows under their photo when their Santa unwraps them. The organizer sees who has a wishlist, but not what's on it.
 
 The organizer page shows who has opened their match. It never shows who drew whom, so the organizer can join in too. Anyone holding someone's link can see that person's match, so keep the links private.
 

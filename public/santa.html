@@ -14,7 +14,7 @@
 <body>
   <main id="app" aria-live="polite"></main>
   <script type="module">
-    import { api, confetti, el, exchangeFacts, letItSnow, portrait, toast } from '/common.js';
+    import { api, confetti, el, exchangeFacts, fill, letItSnow, portrait, toast } from '/common.js';
 
     letItSnow();
     const app = document.getElementById('app');
@@ -46,7 +46,7 @@
       try {
         render(await api(`/api/santa/${token}`));
       } catch (error) {
-        app.replaceChildren(el('section', { class: 'card center' },
+        fill(app, el('section', { class: 'card center' },
           el('h2', {}, 'Bah, humbug!'),
           el('p', {}, error.message),
         ));
@@ -56,7 +56,7 @@
     function render(view) {
       document.title = `${view.me.name}'s Secret Santa`;
       const { budget } = view.exchange;
-      app.replaceChildren(
+      fill(app, 
         el('header', { class: 'hero' },
           el('h1', {}, view.exchange.name),
           markup(LIGHTS),
@@ -158,7 +158,7 @@
       const title = () => el('h2', {}, 'Your wishlist 📝');
 
       function showSummary(justSaved) {
-        card.replaceChildren(
+        fill(card, 
           title(),
           justSaved && el('p', { class: 'saved-note', role: 'status' }, '✓ Saved. Your Santa will see this.'),
           lists.wishlist && listPanel('love', "🎁 Things I'd love", lists.wishlist),
@@ -189,7 +189,7 @@
             save.disabled = false;
           }
         });
-        card.replaceChildren(
+        fill(card, 
           title(),
           el('p', { class: 'hint' }, 'Only your Secret Santa sees these.'),
           el('label', { class: 'list-label love' }, "🎁 Things I'd love", wish),

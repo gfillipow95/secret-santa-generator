@@ -9,6 +9,15 @@ export async function api(path, { method = 'GET', body } = {}) {
   return data;
 }
 
+/** Drops the parts a `condition && part` switched off, so they never show up as "false" on the page. */
+const present = (children) => children.flat().filter((child) => child != null && child !== false && child !== '');
+
+/** Swaps in new content, skipping switched-off parts the same way `el` does. Use it instead of replaceChildren. */
+export function fill(node, ...children) {
+  node.replaceChildren(...present(children));
+  return node;
+}
+
 /** Builds DOM nodes. Strings become text nodes, so user-entered names are never parsed as HTML. */
 export function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -18,7 +27,7 @@ export function el(tag, props = {}, ...children) {
     else if (value === true) node.setAttribute(key, '');
     else if (value !== false && value != null) node.setAttribute(key, value);
   }
-  node.append(...children.flat().filter((child) => child != null && child !== false));
+  node.append(...present(children));
   return node;
 }
 

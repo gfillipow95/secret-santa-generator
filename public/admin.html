@@ -14,7 +14,7 @@
 <body>
   <main id="app" aria-live="polite"></main>
   <script type="module">
-    import { api, confetti, copy, el, exchangeFacts, letItSnow, portrait, rememberExchange, toast } from '/common.js';
+    import { api, confetti, copy, el, exchangeFacts, fill, letItSnow, portrait, rememberExchange, toast } from '/common.js';
     import { openPhotoPicker } from '/photo-picker.js';
     import { createEditor } from '/editor.js';
 
@@ -32,7 +32,7 @@
         rememberExchange(group.name, token);
         render(group);
       } catch (error) {
-        app.replaceChildren(el('section', { class: 'card center' },
+        fill(app, el('section', { class: 'card center' },
           el('h2', {}, 'Bah, humbug!'),
           el('p', {}, error.message),
           el('a', { class: 'btn', href: '/' }, 'Start a new exchange'),
@@ -42,7 +42,7 @@
 
     function render(group) {
       document.title = `${group.name} · Organizer`;
-      app.replaceChildren(
+      fill(app, 
         el('header', { class: 'hero' },
           el('span', { class: 'emoji', 'aria-hidden': 'true' }, '🎩'),
           el('h1', {}, group.name),

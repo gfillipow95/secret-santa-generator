@@ -23,6 +23,7 @@
     const token = location.pathname.split('/').filter(Boolean).pop();
     const santaLink = (person) => `${location.origin}/santa/${person.token}`;
     let editing = false;
+    let form = null;
     let gallery = [];
     api('/api/gallery').then((images) => { gallery = images; }).catch(() => {});
 
@@ -120,7 +121,7 @@
         group.couples.length > 0 && el('p', { class: 'hint' },
           `💕 Kept apart: ${group.couples.map(([a, b]) => `${a} & ${b}`).join(', ')}`),
         el('div', { class: 'actions' },
-          el('button', { class: 'btn ghost small', onclick: () => copy(allLinks(), 'All links copied. Paste them wherever you like!') }, 'Copy all links as a message'),
+          el('button', { class: 'btn gold small', onclick: () => copy(allLinks(), 'All links copied. Paste them wherever you like!') }, 'Copy all links as a message'),
         ),
       );
     }
@@ -145,24 +146,36 @@
       });
     }
 
-    function editCard(group) {
-      if (!editing) {
-        return el('div', { class: 'actions' },
-          el('button', { class: 'btn ghost', onclick: () => { editing = true; render(group); } },
-            group.drawn ? '✏️ Edit details' : '✏️ Edit details, people & couples'),
-        );
-      }
+    // The open edit form survives page redraws (like saving a photo), so nothing typed is lost.
+    // It's only rebuilt when people and couples lock or unlock, keeping the details typed so far.
+    function editForm(group) {
+      if (form && form.locked === group.drawn) return form;
+      const typed = form?.editor.read();
       const holder = el('div');
       const editor = createEditor(holder, {
-        exchange: group,
+        exchange: typed ? { ...group, ...typed } : group,
         participants: group.participants,
         couples: group.couples,
         rosterLocked: group.drawn,
       });
+      form = { holder, editor, locked: group.drawn };
+      return form;
+    }
+
+    function editCard(group) {
+      if (!editing) {
+        form = null;
+        return el('div', { class: 'actions' },
+          el('button', { class: 'btn gold', onclick: () => { editing = true; render(group); } },
+            group.drawn ? '✏️ Edit details' : '✏️ Edit details, people & couples'),
+        );
+      }
+      const { holder, editor } = editForm(group);
       const save = async () => {
         try {
           const updated = await api(`/api/admin/${token}`, { method: 'PUT', body: editor.read() });
           editing = false;
+          form = null;
           render(updated);
           toast('Saved!');
         } catch (error) {
@@ -176,13 +189,17 @@
         ),
         holder,
         el('div', { class: 'actions' },
-          el('button', { class: 'btn ghost', onclick: () => { editing = false; render(group); } }, 'Cancel'),
+          el('button', { class: 'btn gold', onclick: () => { editing = false; form = null; render(group); } }, 'Cancel'),
           el('button', { class: 'btn', onclick: save }, 'Save changes'),
         ),
       );
     }
 
     async function draw(group) {
+      if (editing) {
+        toast('Save or cancel your edits first, then shake the hat.', { error: true });
+        return;
+      }
       const flicker = el('div', { class: 'flicker' });
       const overlay = el('div', { class: 'overlay', role: 'status' },
         el('div', {}, el('div', { class: 'hat', 'aria-hidden': 'true' }, '🎩'), flicker, el('p', {}, 'Shaking the hat…')),
@@ -214,7 +231,6 @@
         close();
         try {
           const fresh = await api(`/api/admin/${token}/reset`, { method: 'POST' });
-          editing = false;
           render(fresh);
           if (andShake) await draw(fresh);
           else toast('Draw reset. Shake the hat again when ready.');

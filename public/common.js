@@ -90,17 +90,27 @@ export function letItSnow() {
   const ctx = canvas.getContext('2d');
   let flakes = [];
 
+  const newFlake = () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: (Math.random() * 2.4 + 0.8) * devicePixelRatio,
+    speed: (Math.random() * 0.6 + 0.3) * devicePixelRatio,
+    drift: Math.random() * Math.PI * 2,
+  });
+
+  // Phones resize the page when the address bar hides or shows while scrolling, so
+  // existing flakes stretch to the new size instead of being scattered again.
   const resize = () => {
+    const [oldWidth, oldHeight] = [canvas.width, canvas.height];
     canvas.width = innerWidth * devicePixelRatio;
     canvas.height = innerHeight * devicePixelRatio;
+    for (const flake of flakes) {
+      flake.x *= canvas.width / oldWidth;
+      flake.y *= canvas.height / oldHeight;
+    }
     const count = Math.min(160, Math.round(innerWidth / 9));
-    flakes = Array.from({ length: count }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: (Math.random() * 2.4 + 0.8) * devicePixelRatio,
-      speed: (Math.random() * 0.6 + 0.3) * devicePixelRatio,
-      drift: Math.random() * Math.PI * 2,
-    }));
+    flakes = flakes.slice(0, count);
+    while (flakes.length < count) flakes.push(newFlake());
   };
 
   const frame = () => {

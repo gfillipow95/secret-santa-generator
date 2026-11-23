@@ -72,15 +72,23 @@
               ),
             ),
             el('div', { class: 'facts' }, exchangeFacts({ ...view.exchange, budget: '' })),
-            budget && el('div', { class: 'price-tag' },
-              el('span', { class: 'price-label' }, 'Spend up to'),
-              el('span', { class: 'price' }, budget),
-            ),
+            budget && priceTag(budget),
           ),
           view.exchange.note && el('p', { class: 'note' }, view.exchange.note),
         ),
         matchCard(view),
         wishlistCard(view),
+      );
+    }
+
+    // A plain amount like "$40" or "30€" reads as a limit; anything else, like "$25, homemade is OK", is shown as written.
+    const AMOUNT = /^\s*[$€£¥]?\s?\d[\d.,]*\s?([$€£¥]|usd|eur|gbp|dollars?)?\s*$/i;
+
+    function priceTag(budget) {
+      const amount = AMOUNT.test(budget);
+      return el('div', { class: `price-tag ${amount ? '' : 'long'}` },
+        el('span', { class: 'price-label' }, amount ? 'Spend up to' : 'Gift budget'),
+        el('span', { class: 'price' }, budget),
       );
     }
 

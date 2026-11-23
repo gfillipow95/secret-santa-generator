@@ -137,7 +137,7 @@ export function createEditor(root, { exchange = {}, participants = [], couples =
       el('li', {},
         `${a} 💕 ${b}`,
         el('button', {
-          class: 'btn ghost small',
+          class: 'btn gold small',
           type: 'button',
           onclick: () => { pairs = pairs.filter((pair) => pair[0] !== a); render(); },
         }, 'Unpair'),

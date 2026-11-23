@@ -22,6 +22,7 @@ async function start(options) {
     });
     return { status: response.status, headers: response.headers, body: await response.json().catch(() => null) };
   };
+  call.base = base;
   return { call, close: () => server.close() };
 }
 
@@ -51,12 +52,22 @@ test('no passcode is needed when none is set', async () => {
   }
 });
 
-test('too many wrong passcodes pause creating for a while', async () => {
-  const { call, close } = await start({ createPasscode: 'jingle bells' });
+test('too many wrong passcodes pause only the person guessing', async () => {
+  const { call, close } = await start({ createPasscode: 'jingle bells', clientIpHeader: 'fly-client-ip' });
+  const from = (ip) => async (passcode) => {
+    const response = await fetch(`${call.base}/api/groups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Fly-Client-IP': ip },
+      body: JSON.stringify({ ...setup, passcode }),
+    });
+    return response.status;
+  };
+  const stranger = from('203.0.113.9');
+  const organizer = from('198.51.100.4');
   try {
-    for (let i = 0; i < 10; i++) assert.equal((await call('/api/groups', 'POST', { ...setup, passcode: `guess ${i}` })).status, 401);
-    const paused = await call('/api/groups', 'POST', { ...setup, passcode: 'jingle bells' });
-    assert.equal(paused.status, 429, 'even the right passcode waits once guessing starts');
+    for (let i = 0; i < 10; i++) assert.equal(await stranger(`guess ${i}`), 401);
+    assert.equal(await stranger('jingle bells'), 429, 'the guesser has to wait, even with the right passcode');
+    assert.equal(await organizer('jingle bells'), 201, 'everyone else can still create exchanges');
   } finally {
     close();
   }

@@ -163,3 +163,24 @@ test('data survives a restart', async () => {
   assert.equal(response.status, 200);
   assert.equal((await response.json()).name, 'Family Swap');
 });
+
+test('after a reset, the hat can be shaken again from a fresh start', async () => {
+  const { adminToken } = (await call('/api/groups', 'POST', setup)).body;
+  const tokens = (await call(`/api/admin/${adminToken}`)).body.participants.map((p) => p.token);
+  await call(`/api/admin/${adminToken}/draw`, 'POST');
+  for (const token of tokens.slice(0, 2)) await call(`/api/santa/${token}/reveal`, 'POST');
+
+  const reset = (await call(`/api/admin/${adminToken}/reset`, 'POST')).body;
+  assert.equal(reset.drawn, false);
+  assert.ok(reset.participants.every((p) => !p.revealed), 'opened badges clear');
+  const waiting = (await call(`/api/santa/${tokens[0]}`)).body;
+  assert.equal(waiting.drawn, false);
+  assert.equal(waiting.recipient, null, 'someone who had unwrapped no longer sees a match');
+
+  const redrawn = await call(`/api/admin/${adminToken}/draw`, 'POST');
+  assert.equal(redrawn.status, 200);
+  assert.ok(redrawn.body.participants.every((p) => !p.revealed), 'everyone starts unopened');
+  const fresh = (await call(`/api/santa/${tokens[0]}`)).body;
+  assert.equal(fresh.drawn, true);
+  assert.equal(fresh.revealed, false, 'they unwrap the new match themselves');
+});

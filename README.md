@@ -29,7 +29,7 @@ Each person can fill in two lists: things they'd love, and hard nos. After savin
 
 The organizer page shows who has opened their match. It never shows who drew whom, so the organizer can join in too. Anyone holding someone's link can see that person's match, so keep the links private.
 
-Before the draw, you can edit people and couples, and everyone keeps their link. After the draw, only the details (name, budget, date, note) can change. To change who's in, reset the draw. Everyone will then unwrap a fresh match.
+Before the draw, you can edit people and couples, and everyone keeps their link. After the draw, only the details (name, budget, date, note) can change. To change who's in, or just to redo the draw, use "🔄 Reset the draw" on the organizer page. It clears every match and opened badge, keeps links, photos, and lists, and can shake the hat again straight away with "Reset and shake again". Everyone then unwraps a fresh match.
 
 Bookmark the organizer link. It's the only way back to the organizer page. This browser also remembers the exchanges you created, on the home page.
 

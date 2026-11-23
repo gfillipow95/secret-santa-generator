@@ -84,7 +84,7 @@
         el('h2', {}, 'Names are drawn! 🎉'),
         el('p', {}, `${opened} of ${group.participants.length} have unwrapped their match.`),
         el('p', { class: 'hint' }, "The pairings stay secret. This page never shows who has whom, so you can join in too."),
-        el('button', { class: 'btn ghost small', onclick: () => reset() }, 'Reset the draw'),
+        el('button', { class: 'btn gold', onclick: () => confirmReset(group) }, '🔄 Reset the draw'),
       );
     }
 
@@ -172,7 +172,7 @@
       return el('div', {},
         group.drawn && el('div', { class: 'banner' },
           el('span', { class: 'icon', 'aria-hidden': 'true' }, '🔒'),
-          el('p', {}, 'Names are drawn, so people and couples are locked. Reset the draw to change them. Everyone keeps their link.'),
+          el('p', {}, 'Names are drawn, so people and couples are locked. ', el('button', { class: 'link-button', type: 'button', onclick: () => confirmReset(group) }, 'Reset the draw'), ' to change them. Everyone keeps their link.'),
         ),
         holder,
         el('div', { class: 'actions' },
@@ -206,14 +206,44 @@
       }
     }
 
-    async function reset() {
-      if (!confirm('Reset the draw? Everyone will need to unwrap a new match. Links stay the same.')) return;
-      try {
-        render(await api(`/api/admin/${token}/reset`, { method: 'POST' }));
-        toast('Draw reset. Shake the hat again when ready.');
-      } catch (error) {
-        toast(error.message, { error: true });
-      }
+    function confirmReset(group) {
+      const opened = group.participants.filter((p) => p.revealed).length;
+      const close = () => { backdrop.remove(); removeEventListener('keydown', onKey); };
+      const onKey = (event) => { if (event.key === 'Escape') close(); };
+      const run = (andShake) => async () => {
+        close();
+        try {
+          const fresh = await api(`/api/admin/${token}/reset`, { method: 'POST' });
+          editing = false;
+          render(fresh);
+          if (andShake) await draw(fresh);
+          else toast('Draw reset. Shake the hat again when ready.');
+        } catch (error) {
+          toast(error.message, { error: true });
+        }
+      };
+
+      const backdrop = el('div', { class: 'modal', onclick: (event) => { if (event.target === backdrop) close(); } },
+        el('section', { class: 'card reset-confirm', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'reset-title' },
+          el('h2', { id: 'reset-title' }, 'Reset the draw? 🔄'),
+          opened > 0 && el('p', { class: 'reset-count' }, `${opened} of ${group.participants.length} have already seen who they got.`),
+          el('ul', { class: 'reset-list' },
+            el('li', {}, "Everyone's match is cleared, and the opened badges reset."),
+            el('li', {}, 'Anyone who already unwrapped sees a wrapped gift again, and gets a new match after the next shake.'),
+            el('li', { class: 'keep' }, 'Links, photos, wishlists, and hard nos all stay the same.'),
+          ),
+          el('div', { class: 'actions' },
+            el('button', { class: 'btn gold', type: 'button', onclick: close }, 'Keep this draw'),
+            el('button', { class: 'btn', type: 'button', onclick: run(false) }, 'Reset'),
+          ),
+          el('div', { class: 'actions' },
+            el('button', { class: 'btn big', type: 'button', onclick: run(true) }, 'Reset and shake again 🎩'),
+          ),
+        ),
+      );
+      addEventListener('keydown', onKey);
+      document.body.append(backdrop);
+      backdrop.querySelector('.btn.gold').focus();
     }
 
     load();

@@ -1,8 +1,34 @@
 import { el, toast } from './common.js';
+import { edgeBlackShare, whitenEdgeBlack } from './white-background.js';
 
 const VIEW = 220;
 const PREVIEW = 96;
 const OUTPUT = 400;
+const MIN_ZOOM = 0.4;
+const MAX_SOURCE = 1600;
+// Naming each format, rather than image/*, stops iPhones converting pictures to JPEG, which turns see-through backgrounds black.
+const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,image/avif';
+
+/** Copies the picture onto a canvas (shrunk if huge) so its pixels can be cleaned up. */
+function toCanvas(image) {
+  const scale = Math.min(1, MAX_SOURCE / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(image.naturalWidth * scale);
+  canvas.height = Math.round(image.naturalHeight * scale);
+  canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+function whitened(canvas) {
+  const copy = document.createElement('canvas');
+  copy.width = canvas.width;
+  copy.height = canvas.height;
+  const ctx = copy.getContext('2d');
+  const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+  whitenEdgeBlack(pixels);
+  ctx.putImageData(pixels, 0, 0);
+  return copy;
+}
 
 const loadImage = (src) => new Promise((resolve, reject) => {
   const image = new Image();
@@ -18,14 +44,18 @@ const loadImage = (src) => new Promise((resolve, reject) => {
  * square JPEG blob; `remove` is offered only when they already have a photo.
  */
 export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
-  const fileInput = el('input', { type: 'file', accept: 'image/*', hidden: true });
+  const fileInput = el('input', { type: 'file', accept: ACCEPT, hidden: true });
   const crop = el('canvas', { class: 'crop', width: VIEW * devicePixelRatio, height: VIEW * devicePixelRatio, 'aria-label': `Drag to position ${name}'s photo` });
   const preview = el('canvas', { class: 'pic', width: PREVIEW * devicePixelRatio, height: PREVIEW * devicePixelRatio });
-  const zoomInput = el('input', { type: 'range', min: 1, max: 3, step: 0.01, value: 1, 'aria-label': 'Zoom' });
+  const zoomInput = el('input', { type: 'range', min: MIN_ZOOM, max: 3, step: 0.01, value: 1, 'aria-label': 'Zoom' });
+  const whiteInput = el('input', { type: 'checkbox', checked: true });
+  const whiteToggle = el('label', { class: 'white-toggle', hidden: true }, whiteInput, 'White background');
   const saveButton = el('button', { class: 'btn', type: 'button' }, 'Save photo');
   const chooseButton = el('button', { class: 'btn gold', type: 'button', onclick: () => fileInput.click() }, 'Choose another');
 
   let image = null;
+  let original = null;
+  let cleaned = null;
   let zoom = 1;
   let x = 0;
   let y = 0;
@@ -33,10 +63,12 @@ export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
   const coverScale = () => VIEW / Math.min(image.width, image.height);
   const size = () => ({ w: image.width * coverScale() * zoom, h: image.height * coverScale() * zoom });
 
+  // Zoomed in, the picture must cover the frame; zoomed out, it must stay inside it.
+  const keepIn = (offset, length) => Math.min(Math.max(offset, Math.min(0, VIEW - length)), Math.max(0, VIEW - length));
   const clamp = () => {
     const { w, h } = size();
-    x = Math.min(0, Math.max(VIEW - w, x));
-    y = Math.min(0, Math.max(VIEW - h, y));
+    x = keepIn(x, w);
+    y = keepIn(y, h);
   };
 
   const paint = (canvas) => {
@@ -57,11 +89,16 @@ export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
   let source = 'upload';
   const show = async (src, from = 'upload') => {
     try {
-      image = await loadImage(src);
+      original = toCanvas(await loadImage(src));
     } catch (error) {
       toast(error.message, { error: true });
       return;
     }
+    const blackEdge = edgeBlackShare(original.getContext('2d').getImageData(0, 0, original.width, original.height)) > 0.2;
+    cleaned = blackEdge ? whitened(original) : null;
+    whiteToggle.hidden = !blackEdge;
+    whiteInput.checked = blackEdge;
+    image = cleaned ?? original;
     zoom = 1;
     zoomInput.value = 1;
     const { w, h } = size();
@@ -73,6 +110,11 @@ export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
     if (!backdrop.isConnected) document.body.append(backdrop);
     saveButton.disabled = false;
   };
+
+  whiteInput.addEventListener('change', () => {
+    image = whiteInput.checked ? cleaned : original;
+    draw();
+  });
 
   zoomInput.addEventListener('input', () => {
     const before = coverScale() * zoom;
@@ -170,6 +212,7 @@ export function openPhotoPicker({ name, photo, gallery = [], save, remove }) {
         ),
       ),
       el('label', { class: 'zoom' }, 'Zoom', zoomInput),
+      whiteToggle,
       el('div', { class: 'actions' },
         chooseButton,
         removeButton,
